@@ -1,13 +1,21 @@
+# Project-specific
+credentials/
+downloads/
+logs/
+*.env
+env_example
+token.pickle
+client_secrets.json
+credentials.json
+
 # Python
 __pycache__/
 *.py[cod]
 *$py.class
-*.so
 .Python
 build/
 develop-eggs/
 dist/
-downloads/
 eggs/
 .eggs/
 lib/
@@ -16,16 +24,21 @@ parts/
 sdist/
 var/
 wheels/
+share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+MANIFEST
+*.so
 
 # Virtual Environment
-venv/
+.env/
+.venv/
 env/
+venv/
 ENV/
-.env
-.venv
+env.bak/
+venv.bak/
 
 # IDE
 .idea/
@@ -34,21 +47,36 @@ ENV/
 *.swo
 .project
 .pydevproject
+*.sublime-workspace
+*.sublime-project
 
-# Credentials and Configs
-*.ini
-credentials.json
-token.json
-client_secrets.json
-*.pickle
-token.pickle
-
-# Logs and local data
+# Logs
 *.log
-logs/
-temp/
-downloads/
+*.log.*
+.log/
 
-# OS specific
+# OS
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
+Desktop.ini
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+.nox/
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Jupyter Notebook
+.ipynb_checkpoints

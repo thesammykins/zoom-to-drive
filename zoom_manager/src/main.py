@@ -9,12 +9,14 @@ GOOGLE_SHARED_DRIVE_ID = None
 
 # Update imports to absolute paths
 from zoom_manager.config.settings import (
-    LOG_FORMAT,
     LOG_FILE,
+    LOG_LEVEL,
+    DEBUG,
+    FILE_FORMATTER,
+    CONSOLE_FORMATTER,
     DOWNLOAD_DIR,
     GOOGLE_TARGET_FOLDER_ID as ENV_TARGET_FOLDER_ID,
-    GOOGLE_SHARED_DRIVE_ID as ENV_SHARED_DRIVE_ID,
-    DEBUG
+    GOOGLE_SHARED_DRIVE_ID as ENV_SHARED_DRIVE_ID
 )
 from zoom_manager.src.zoom_client import ZoomClient
 from zoom_manager.src.google_drive_client import GoogleDriveClient
@@ -22,16 +24,23 @@ from zoom_manager.src.slack_client import SlackClient
 
 def setup_logging():
     """Configure logging for the application"""
-    logging_level = logging.DEBUG if DEBUG else logging.INFO  # Now DEBUG is defined
-    logging.basicConfig(
-        level=logging_level,
-        format=LOG_FORMAT,
-        handlers=[
-            logging.FileHandler(LOG_FILE),
-            logging.StreamHandler()
-        ]
-    )
-    return logging.getLogger(__name__)
+    logger = logging.getLogger()
+    logger.setLevel(LOG_LEVEL)
+
+    # Clear any existing handlers
+    logger.handlers.clear()
+
+    # File handler - always use debug format
+    file_handler = logging.FileHandler(LOG_FILE)
+    file_handler.setFormatter(FILE_FORMATTER)
+    logger.addHandler(file_handler)
+
+    # Console handler - use simple format unless in debug mode
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(CONSOLE_FORMATTER)
+    logger.addHandler(console_handler)
+
+    return logger
 
 def cleanup_downloads(folder_path: Path):
     """Clean up downloaded files after successful upload"""

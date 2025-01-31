@@ -23,6 +23,7 @@ class ZoomClient:
     # Add or update the file type to extension mapping
     FILE_TYPE_EXTENSION_MAP = {
         'shared_screen_with_speaker_view(cc)': '.mp4',
+        'shared_screen_with_speaker_view': '.mp4',
         'audio_only': '.m4a',
         'video_only(m4s)': '.m4s',
         'closed_caption': '.vtt',
@@ -242,23 +243,6 @@ class ZoomClient:
 
         return downloaded_files
 
-<<<<<<< HEAD
     def _get_file_extension(self, file_type):
         """Get the file extension based on the recording type."""
         return self.FILE_TYPE_EXTENSION_MAP.get(file_type)
-=======
-    @staticmethod
-    def _get_file_extension(file_type):
-        """Get file extension based on recording type."""
-        extensions = {
-            'shared_screen_with_speaker_view': '.mp4',
-            'shared_screen_with_gallery_view': '.mp4',
-            'shared_screen': '.mp4',
-            'speaker_view': '.mp4',
-            'gallery_view': '.mp4',
-            'audio_transcript': '.vtt',
-            'chat_file': '.txt',
-            'audio_only': '.m4a'
-        }
-        return extensions.get(file_type)
->>>>>>> 15131b2 (Prepare repository for public release)

@@ -50,6 +50,8 @@ pip install -r requirements.txt
       - Slack webhook URL (optional)
     - Place your Google API credentials file in the `credentials` directory
 
+## 📁 Project Structure
+
 ## ⚙️ Configuration
 
 1. Create required directories:
@@ -78,7 +80,7 @@ DEBUG=false
 
 Run the script from the root directory:
 ```bash
-python zoom_manager/src/main.py --name "Meeting Name" --email "user@example.com" --days 7
+python zoom_manager.src.main.py --name "Meeting Name" --email "user@example.com" --days 7
 ```
 
 Arguments:
@@ -95,10 +97,12 @@ Log levels are controlled by the DEBUG environment variable:
   - Detailed API responses
   - Download progress
   - File operations
+  - No downloads are made
 - With `DEBUG=false`:
   - Important operations
   - Errors and warnings
   - Final status
+  - Downloads are made
 
 Logs are stored in:
 - `./logs/zoom_manager.log` (main log file)

@@ -44,6 +44,11 @@ SLACK_WEBHOOK_URL = os.getenv("SLACK_WEBHOOK_URL")
 DEBUG = os.getenv('DEBUG', 'false').lower() in ('true', '1', 't')
 
 # Logging Configuration
-LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+DEBUG_LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+SIMPLE_LOG_FORMAT = "%(message)s"
 LOG_FILE = LOGS_DIR / f"zoom_manager_{datetime.now().strftime('%Y%m%d')}.log"
 LOG_LEVEL = logging.DEBUG if DEBUG else logging.INFO
+
+# Configure logging handlers
+FILE_FORMATTER = logging.Formatter(DEBUG_LOG_FORMAT)
+CONSOLE_FORMATTER = logging.Formatter(SIMPLE_LOG_FORMAT if not DEBUG else DEBUG_LOG_FORMAT)
