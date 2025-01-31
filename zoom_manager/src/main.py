@@ -1,0 +1,188 @@
+import argparse
+import logging
+from datetime import datetime, timedelta
+from pathlib import Path
+
+# Declare globals first
+GOOGLE_TARGET_FOLDER_ID = None 
+GOOGLE_SHARED_DRIVE_ID = None
+
+# Update imports to absolute paths
+from zoom_manager.config.settings import (
+    LOG_FORMAT,
+    LOG_FILE,
+    DOWNLOAD_DIR,
+    GOOGLE_TARGET_FOLDER_ID as ENV_TARGET_FOLDER_ID,
+    GOOGLE_SHARED_DRIVE_ID as ENV_SHARED_DRIVE_ID,
+    DEBUG
+)
+from zoom_manager.src.zoom_client import ZoomClient
+from zoom_manager.src.google_drive_client import GoogleDriveClient
+from zoom_manager.src.slack_client import SlackClient
+
+def setup_logging():
+    """Configure logging for the application"""
+    logging_level = logging.DEBUG if DEBUG else logging.INFO  # Now DEBUG is defined
+    logging.basicConfig(
+        level=logging_level,
+        format=LOG_FORMAT,
+        handlers=[
+            logging.FileHandler(LOG_FILE),
+            logging.StreamHandler()
+        ]
+    )
+    return logging.getLogger(__name__)
+
+def cleanup_downloads(folder_path: Path):
+    """Clean up downloaded files after successful upload"""
+    try:
+        if (folder_path.exists()):
+            for file_path in folder_path.glob('**/*'):
+                if file_path.is_file():
+                    file_path.unlink()
+            
+            # Remove empty directories
+            for dir_path in reversed(list(folder_path.glob('**/*'))):
+                if dir_path.is_dir() and not any(dir_path.iterdir()):
+                    dir_path.rmdir()
+            
+            if folder_path.exists() and not any(folder_path.iterdir()):
+                folder_path.rmdir()
+    except Exception as e:
+        logging.getLogger(__name__).error(f"Error during cleanup: {str(e)}")
+
+def parse_args():
+    """Parse command line arguments."""
+    global GOOGLE_TARGET_FOLDER_ID, GOOGLE_SHARED_DRIVE_ID
+    
+    # Initialize with environment values
+    GOOGLE_TARGET_FOLDER_ID = ENV_TARGET_FOLDER_ID
+    GOOGLE_SHARED_DRIVE_ID = ENV_SHARED_DRIVE_ID
+    
+    parser = argparse.ArgumentParser(description='Zoom Recording Manager')
+    parser.add_argument('--drive-id', 
+                       help='Google Drive folder ID',
+                       default=GOOGLE_TARGET_FOLDER_ID)
+    parser.add_argument('--shared-id',
+                       help='Google Shared Drive ID', 
+                       default=GOOGLE_SHARED_DRIVE_ID)
+    parser.add_argument(
+        '--name',
+        required=True,
+        help="Name of the target recording"
+    )
+    parser.add_argument(
+        '--email',
+        required=True,
+        help="Email of the target Zoom user"
+    )
+    parser.add_argument(
+        '--days',
+        type=int,
+        default=7,
+        help="Number of days to search for recordings (default: 7)"
+    )
+    
+    args = parser.parse_args()
+    
+    # Override with CLI args if provided
+    if args.drive_id:
+        GOOGLE_TARGET_FOLDER_ID = args.drive_id
+    if args.shared_id:
+        GOOGLE_SHARED_DRIVE_ID = args.shared_id
+        
+    return args
+
+def main():
+    logger = setup_logging()
+
+    # Parse command-line arguments
+    args = parse_args()
+
+    target_recording_name = args.name
+    target_user_email = args.email
+    days_to_search = args.days
+
+    logger.info(f"Starting Zoom recording manager (searching last {days_to_search} days)")
+
+    try:
+        # Initialize clients
+        zoom = ZoomClient()
+        gdrive = GoogleDriveClient()
+        slack = SlackClient()
+
+        # Look up user by email
+        try:
+            user_info = zoom.get_user_by_email(target_user_email)
+            user_id = user_info['id']
+            logger.info(f"Found user: {user_info.get('first_name')} {user_info.get('last_name')} (ID: {user_id})")
+        except ValueError as e:
+            logger.error(f"User lookup failed: {str(e)}")
+            return
+        except Exception as e:
+            logger.error(f"Error during user lookup: {str(e)}")
+            return
+
+        # Set date range based on days_to_search
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=days_to_search)
+
+        # Get recordings for the specific user
+        recordings = zoom.get_recordings(user_id, start_date, end_date)
+        
+        # Filter recordings by name
+        target_recordings = [
+            rec for rec in recordings.get('meetings', [])
+            if target_recording_name.lower() in rec.get('topic', '').lower()
+        ]
+
+        if not target_recordings:
+            logger.info(f"No recordings found matching '{target_recording_name}' in the last {days_to_search} days")
+            return
+
+        # Process each recording
+        for recording in target_recordings:
+            logger.info(f"Processing recording: {recording['topic']}")
+            
+            try:
+                # Download files
+                downloaded_files = zoom.process_recording(recording, target_recording_name)
+                
+                if not downloaded_files:
+                    logger.warning(f"No files were downloaded for recording: {recording['topic']}")
+                    continue
+
+                # Upload files to Google Drive
+                for file_dict in downloaded_files:
+                    try:
+                        file_id = gdrive.upload_file(file_dict)
+                        logger.info(f"Successfully uploaded {file_dict['name']} (ID: {file_id})")
+                        
+                        # Send Slack notification only for .mp4 files
+                        if file_dict['name'].endswith('.mp4'):
+                            slack.send_notification(
+                                recording_name=recording['topic'],
+                                file_name=file_dict['name'],
+                                file_id=file_id
+                            )
+                    except Exception as upload_error:
+                        logger.error(f"Failed to upload {file_dict['name']}: {str(upload_error)}")
+                        continue
+
+                # Clean up downloaded files after successful upload
+                if downloaded_files:
+                    cleanup_downloads(downloaded_files[0]['path'].parent)
+                    logger.info(f"Cleaned up downloaded files for {recording['topic']}")
+
+            except Exception as proc_error:
+                logger.error(f"Error processing recording {recording['topic']}: {str(proc_error)}")
+                continue
+
+        logger.info("Finished processing all recordings")
+
+    except Exception as e:
+        logger.error(f"Application error: {str(e)}")
+        raise
+
+if __name__ == "__main__":
+    main()
