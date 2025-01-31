@@ -33,9 +33,9 @@ ZOOM_API_BASE_URL = "https://api.zoom.us/v2"
 
 # Google Drive Configuration
 GOOGLE_CREDENTIALS_FILE = CREDENTIALS_DIR / "credentials.json"
-GOOGLE_TOKEN_FILE = CREDENTIALS_DIR / "token.pickle"
 GOOGLE_SHARED_DRIVE_ID = os.getenv("GOOGLE_SHARED_DRIVE_ID") or None  # Allow CLI override
 GOOGLE_TARGET_FOLDER_ID = os.getenv("GOOGLE_DRIVE_FOLDER_ID") or None  # Allow CLI override
+GOOGLE_SERVICE_ACCOUNT_KEY = os.getenv("GOOGLE_SERVICE_ACCOUNT_KEY")
 
 # Slack Configuration
 SLACK_WEBHOOK_URL = os.getenv("SLACK_WEBHOOK_URL")

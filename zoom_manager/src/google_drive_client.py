@@ -1,19 +1,16 @@
 import logging
-import pickle
+import json
 from datetime import datetime
 from pathlib import Path
 
 import pytz
-from google.auth.transport.requests import Request
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
+from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from tqdm import tqdm
 
 from zoom_manager.config.settings import (
-    GOOGLE_CREDENTIALS_FILE,
-    GOOGLE_TOKEN_FILE,
+    GOOGLE_SERVICE_ACCOUNT_KEY,
     GOOGLE_TARGET_FOLDER_ID,
     GOOGLE_SHARED_DRIVE_ID
 )
@@ -30,45 +27,15 @@ class GoogleDriveClient:
         self._authenticate()
 
     def _authenticate(self):
-        """Authenticate with Google Drive using OAuth 2.0"""
-        creds = None
-        
-        # Load existing token if it exists
-        if GOOGLE_TOKEN_FILE.exists():
-            try:
-                with open(GOOGLE_TOKEN_FILE, 'rb') as token:
-                    creds = pickle.load(token)
-            except Exception as e:
-                self.logger.warning(f"Error loading existing token: {str(e)}")
-
-        # If no valid credentials available, authenticate
-        if not creds or not creds.valid:
-            if creds and creds.expired and creds.refresh_token:
-                try:
-                    creds.refresh(Request())
-                except Exception as e:
-                    self.logger.warning(f"Error refreshing token: {str(e)}")
-                    creds = None
-            
-            # If still no valid creds, need to authenticate
-            if not creds:
-                try:
-                    flow = InstalledAppFlow.from_client_secrets_file(
-                        GOOGLE_CREDENTIALS_FILE, self.SCOPES)
-                    creds = flow.run_local_server(port=0)
-                except Exception as e:
-                    self.logger.error(f"Authentication failed: {str(e)}")
-                    raise
-
-            # Save the credentials for future use
-            try:
-                with open(GOOGLE_TOKEN_FILE, 'wb') as token:
-                    pickle.dump(creds, token)
-            except Exception as e:
-                self.logger.warning(f"Error saving token: {str(e)}")
-
-        self.service = build('drive', 'v3', credentials=creds)
-        self.credentials = creds
+        """Authenticate with Google Drive using a service account key"""
+        try:
+            service_account_info = json.loads(GOOGLE_SERVICE_ACCOUNT_KEY)
+            creds = Credentials.from_service_account_info(service_account_info, scopes=self.SCOPES)
+            self.service = build('drive', 'v3', credentials=creds)
+            self.credentials = creds
+        except Exception as e:
+            self.logger.error(f"Authentication failed: {str(e)}")
+            raise
 
     def get_or_create_folder(self, folder_name, parent_id=None):
         """Get existing folder or create new one in Google Drive."""

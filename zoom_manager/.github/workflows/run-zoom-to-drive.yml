@@ -1,0 +1,50 @@
+name: Run Zoom to Drive
+
+on:
+  schedule:
+    - cron: '10 0 * * 5' # Runs every Friday at 11:10am Melbourne time
+  workflow_dispatch:
+
+jobs:
+  run-zoom-to-drive:
+    runs-on: ubuntu-latest
+
+    env:
+      ZOOM_CLIENT_ID: ${{ secrets.ZOOM_CLIENT_ID }}
+      ZOOM_CLIENT_SECRET: ${{ secrets.ZOOM_CLIENT_SECRET }}
+      ZOOM_ACCOUNT_ID: ${{ secrets.ZOOM_ACCOUNT_ID }}
+      GOOGLE_SHARED_DRIVE_ID: ${{ secrets.GOOGLE_SHARED_DRIVE_ID }}
+      GOOGLE_DRIVE_FOLDER_ID: ${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}
+      GOOGLE_SERVICE_ACCOUNT_KEY: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY }}
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      DEBUG: 'false'
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.8'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r zoom_manager/requirements.txt
+
+    - name: Validate Melbourne Time
+      run: |
+        python -c "
+import pytz
+from datetime import datetime
+
+melbourne_tz = pytz.timezone('Australia/Melbourne')
+current_time = datetime.now(melbourne_tz)
+if current_time.strftime('%H:%M') != '11:10':
+    raise SystemExit('Not the scheduled time to run the script.')
+"
+
+    - name: Run Zoom to Drive
+      run: |
+        python zoom_manager/src/main.py --name "${{ secrets.MEETING_NAME }}" --email "${{ secrets.USER_EMAIL }}" --days ${{ secrets.DAYS }}
