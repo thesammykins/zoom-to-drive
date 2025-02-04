@@ -1,9 +1,15 @@
+"""
+Main entry point for the Zoom recording manager.
+Handles command line interface, orchestrates the downloading of Zoom recordings,
+uploading to Google Drive, and sending Slack notifications.
+"""
+
 import argparse
 import logging
 from datetime import datetime, timedelta
 from pathlib import Path
 
-# Declare globals first
+# Global configuration IDs for Google Drive
 GOOGLE_TARGET_FOLDER_ID = None 
 GOOGLE_SHARED_DRIVE_ID = None
 
@@ -23,7 +29,13 @@ from zoom_manager.src.google_drive_client import GoogleDriveClient
 from zoom_manager.src.slack_client import SlackClient
 
 def setup_logging():
-    """Configure logging for the application"""
+    """
+    Configure application-wide logging with both file and console outputs.
+    File logging always uses debug level, while console logging format depends on DEBUG setting.
+    
+    Returns:
+        logging.Logger: Configured root logger
+    """
     logger = logging.getLogger()
     logger.setLevel(LOG_LEVEL)
 
@@ -43,7 +55,15 @@ def setup_logging():
     return logger
 
 def cleanup_downloads(folder_path: Path):
-    """Clean up downloaded files after successful upload"""
+    """
+    Remove downloaded files and empty directories after successful upload.
+    
+    Args:
+        folder_path (Path): Path to the folder containing downloaded files
+        
+    Note:
+        Errors during cleanup are logged but don't interrupt the main process
+    """
     try:
         if (folder_path.exists()):
             for file_path in folder_path.glob('**/*'):
@@ -61,7 +81,13 @@ def cleanup_downloads(folder_path: Path):
         logging.getLogger(__name__).error(f"Error during cleanup: {str(e)}")
 
 def parse_args():
-    """Parse command line arguments."""
+    """
+    Parse and validate command line arguments.
+    Combines environment variables with CLI arguments, with CLI taking precedence.
+    
+    Returns:
+        argparse.Namespace: Parsed command line arguments
+    """
     global GOOGLE_TARGET_FOLDER_ID, GOOGLE_SHARED_DRIVE_ID
     
     # Initialize with environment values
@@ -103,6 +129,16 @@ def parse_args():
     return args
 
 def main():
+    """
+    Main execution flow:
+    1. Set up logging and parse arguments
+    2. Initialize API clients (Zoom, Google Drive, Slack)
+    3. Look up Zoom user and fetch recordings
+    4. Download matching recordings
+    5. Upload to Google Drive
+    6. Send Slack notifications
+    7. Clean up downloaded files
+    """
     logger = setup_logging()
 
     # Parse command-line arguments

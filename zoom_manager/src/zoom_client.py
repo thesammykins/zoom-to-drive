@@ -18,9 +18,13 @@ from zoom_manager.config.settings import (
 )
 
 class ZoomClient:
-    MIN_VIDEO_SIZE_MB = 20  # Minimum size in MB for video files
+    """
+    A client for interacting with the Zoom API to manage recordings.
+    Handles authentication, user lookup, and recording downloads.
+    """
 
-    # Add or update the file type to extension mapping
+    MIN_VIDEO_SIZE_MB = 20  # Minimum size threshold for valid video files
+
     FILE_TYPE_EXTENSION_MAP = {
         'shared_screen_with_speaker_view(cc)': '.mp4',
         'shared_screen_with_speaker_view': '.mp4',
@@ -32,13 +36,16 @@ class ZoomClient:
     }
 
     def __init__(self):
-        """Initialize the ZoomClient with logging and token placeholders."""
+        """Initialize the ZoomClient with logging and token management."""
         self.logger = logging.getLogger(__name__)
         self.access_token = None
         self.token_expires_at = None
         
     def _get_access_token(self):
-        """Get OAuth 2.0 access token from Zoom"""
+        """
+        Retrieve or refresh OAuth 2.0 access token for Zoom API authentication.
+        Returns cached token if valid, otherwise requests new token.
+        """
         if self.access_token and datetime.now() < self.token_expires_at:
             return self.access_token
 
@@ -65,14 +72,23 @@ class ZoomClient:
             raise
 
     def _get_headers(self):
-        """Get authenticated headers for API requests"""
+        """
+        Construct HTTP headers with current access token for API requests.
+        Returns dict with Authorization and Content-Type headers.
+        """
         return {
             "Authorization": f"Bearer {self._get_access_token()}",
             "Content-Type": "application/json"
         }
 
     def _convert_to_melbourne_time(self, utc_time_str):
-        """Convert UTC time to Melbourne time."""
+        """
+        Convert UTC timestamp to Melbourne timezone.
+        Args:
+            utc_time_str (str): UTC timestamp in format "YYYY-MM-DDTHH:MM:SSZ"
+        Returns:
+            datetime: Converted timestamp in Melbourne timezone
+        """
         utc_time = datetime.strptime(utc_time_str, "%Y-%m-%dT%H:%M:%SZ")
         utc_time = utc_time.replace(tzinfo=pytz.UTC)
         melbourne_tz = pytz.timezone('Australia/Melbourne')
@@ -80,7 +96,16 @@ class ZoomClient:
         return melbourne_time
 
     def get_user_by_email(self, email: str):
-        """Look up a Zoom user by their email address."""
+        """
+        Retrieve Zoom user details using their email address.
+        Args:
+            email (str): User's email address
+        Returns:
+            dict: User information from Zoom API
+        Raises:
+            ValueError: If user not found
+            RequestException: If API request fails
+        """
         try:
             self.logger.info(f"Looking up user with email: {email}")
             encoded_email = quote(email)
@@ -113,7 +138,15 @@ class ZoomClient:
             raise
 
     def get_recordings(self, user_id: str, start_date=None, end_date=None):
-        """Get recordings for a specific user."""
+        """
+        Fetch recording list for specified user within optional date range.
+        Args:
+            user_id (str): Zoom user ID
+            start_date (datetime, optional): Start date for recording search
+            end_date (datetime, optional): End date for recording search
+        Returns:
+            dict: JSON response containing recording information
+        """
         url = f"{ZOOM_API_BASE_URL}/users/{user_id}/recordings"
         params = {}
         
@@ -151,7 +184,17 @@ class ZoomClient:
             raise
 
     def download_recording(self, download_url, output_path):
-        """Download a recording file with progress bar."""
+        """
+        Download recording file with progress tracking.
+        Args:
+            download_url (str): URL to download the recording
+            output_path (Path): Destination path for downloaded file
+        Returns:
+            bool: True if download successful, False if skipped in DEBUG mode
+        Raises:
+            RuntimeError: If download is incomplete
+            RequestException: If download request fails
+        """
         if DEBUG:
             self.logger.info(f"[DEBUG] Would download from {download_url} to {output_path}")
             return False  # Indicate that download was skipped
@@ -197,7 +240,16 @@ class ZoomClient:
             raise
 
     def process_recording(self, recording_info, meeting_name):
-        """Process a recording including video, transcript, and chat."""
+        """
+        Process and download all files associated with a recording.
+        Handles multiple recording types (video, transcript, chat) and manages file organization.
+        
+        Args:
+            recording_info (dict): Recording metadata from Zoom API
+            meeting_name (str): Name of the meeting for file naming
+        Returns:
+            list: Information about downloaded files including paths and metadata
+        """
         melbourne_time = self._convert_to_melbourne_time(recording_info['start_time'])
         base_folder_name = melbourne_time.strftime("%d %B %Y - ") + meeting_name
         date_folder = melbourne_time.strftime("%Y-%m-%d")  # Ensure correct date format
@@ -244,5 +296,11 @@ class ZoomClient:
         return downloaded_files
 
     def _get_file_extension(self, file_type):
-        """Get the file extension based on the recording type."""
+        """
+        Get appropriate file extension for recording type.
+        Args:
+            file_type (str): Recording type from Zoom API
+        Returns:
+            str: File extension including dot prefix, or None if type unknown
+        """
         return self.FILE_TYPE_EXTENSION_MAP.get(file_type)

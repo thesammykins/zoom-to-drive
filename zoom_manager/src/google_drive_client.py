@@ -1,3 +1,8 @@
+"""
+Google Drive client for managing file uploads and folder structure.
+Handles authentication, folder creation, and file uploads with progress tracking.
+"""
+
 import logging
 import json
 from datetime import datetime
@@ -16,10 +21,20 @@ from zoom_manager.config.settings import (
 )
 
 class GoogleDriveClient:
+    """
+    Client for interacting with Google Drive API.
+    Handles folder management and file uploads with proper metadata.
+    Uses service account authentication and supports shared drives.
+    """
+
     SCOPES = ['https://www.googleapis.com/auth/drive.file']
 
     def __init__(self):
-        """Initialize the GoogleDriveClient and authenticate."""
+        """
+        Initialize the client with authentication and logging setup.
+        Raises:
+            Exception: If authentication fails
+        """
         self.logger = logging.getLogger(__name__)
         self.service = None
         self.credentials = None
@@ -27,7 +42,13 @@ class GoogleDriveClient:
         self._authenticate()
 
     def _authenticate(self):
-        """Authenticate with Google Drive using a service account key"""
+        """
+        Set up Google Drive API authentication using service account credentials.
+        Creates service object for API interactions.
+        
+        Raises:
+            Exception: If authentication or service creation fails
+        """
         try:
             service_account_info = json.loads(GOOGLE_SERVICE_ACCOUNT_KEY)
             creds = Credentials.from_service_account_info(service_account_info, scopes=self.SCOPES)
@@ -38,7 +59,20 @@ class GoogleDriveClient:
             raise
 
     def get_or_create_folder(self, folder_name, parent_id=None):
-        """Get existing folder or create new one in Google Drive."""
+        """
+        Retrieve existing folder or create new one in Google Drive.
+        Uses caching to minimize API calls for repeated folder lookups.
+        
+        Args:
+            folder_name (str): Name of the folder to find or create
+            parent_id (str, optional): ID of parent folder. Uses target folder if None
+            
+        Returns:
+            str: ID of the found or created folder
+            
+        Raises:
+            Exception: If folder operations fail
+        """
         cache_key = f"{parent_id or 'root'}:{folder_name}"
         if cache_key in self.folder_cache:
             return self.folder_cache[cache_key]
@@ -92,7 +126,24 @@ class GoogleDriveClient:
             raise
 
     def upload_file(self, file_dict):
-        """Upload a file to Google Drive with proper folder structure."""
+        """
+        Upload file to Google Drive with metadata and progress tracking.
+        Creates necessary folder structure and preserves recording timestamps.
+        
+        Args:
+            file_dict (dict): File information containing:
+                - name: File name
+                - path: Local file path
+                - date_folder: Target folder name
+                - recording_time: Original recording timestamp
+                - file_size: Size in bytes
+                
+        Returns:
+            str: ID of the uploaded file
+            
+        Raises:
+            Exception: If upload fails
+        """
         try:
             self.logger.debug(f"Uploading file_dict: {file_dict}")  # Added logging
 
@@ -153,7 +204,19 @@ class GoogleDriveClient:
             raise
 
     def check_file_exists(self, file_name, folder_id):
-        """Check if a file already exists in the specified folder."""
+        """
+        Check if file already exists in specified Google Drive folder.
+        
+        Args:
+            file_name (str): Name of file to check
+            folder_id (str): ID of folder to search in
+            
+        Returns:
+            str: File ID if exists, None otherwise
+            
+        Note:
+            Only checks non-trashed files in specified folder
+        """
         try:
             query = [
                 f"name = '{file_name}'",

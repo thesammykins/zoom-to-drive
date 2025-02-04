@@ -3,11 +3,30 @@ import requests
 from zoom_manager.config.settings import SLACK_WEBHOOK_URL
 
 class SlackClient:
+    """
+    Client for sending notifications to Slack about uploaded recordings.
+    Uses Slack's incoming webhook functionality for message delivery.
+    """
+    
     def __init__(self):
+        """Initialize SlackClient with logging configuration."""
         self.logger = logging.getLogger(__name__)
         
     def send_notification(self, recording_name: str, file_name: str, file_id: str):
-        """Send notification about uploaded recording to Slack"""
+        """
+        Send a formatted notification to Slack about an uploaded recording.
+        
+        Args:
+            recording_name (str): Name of the recording/meeting
+            file_name (str): Name of the uploaded file
+            file_id (str): Google Drive file ID for direct link
+            
+        Returns:
+            None
+            
+        Note:
+            Silently fails if no webhook URL is configured
+        """
         if not SLACK_WEBHOOK_URL:
             self.logger.warning("No Slack webhook URL configured, skipping notification")
             return
