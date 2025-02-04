@@ -43,6 +43,9 @@ SLACK_WEBHOOK_URL = os.getenv("SLACK_WEBHOOK_URL")
 # Debug mode
 DEBUG = os.getenv('DEBUG', 'false').lower() in ('true', '1', 't')
 
+# New setting for app mode: 'cli' (default) or 'web'
+APP_MODE = os.getenv('APP_MODE', 'cli')
+
 # Logging Configuration
 DEBUG_LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 SIMPLE_LOG_FORMAT = "%(message)s"
