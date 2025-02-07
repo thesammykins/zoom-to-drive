@@ -32,10 +32,15 @@ ZOOM_API_BASE_URL = "https://api.zoom.us/v2"
 # DAYS_TO_SEARCH = int(os.getenv("DAYS_TO_SEARCH", "7"))
 
 # Google Drive Configuration
+GOOGLE_AUTH_TYPE = os.getenv("GOOGLE_AUTH_TYPE", "oauth")  # 'oauth' or 'service_account'
 GOOGLE_CREDENTIALS_FILE = CREDENTIALS_DIR / "credentials.json"
 GOOGLE_SHARED_DRIVE_ID = os.getenv("GOOGLE_SHARED_DRIVE_ID") or None  # Allow CLI override
 GOOGLE_TARGET_FOLDER_ID = os.getenv("GOOGLE_DRIVE_FOLDER_ID") or None  # Allow CLI override
 GOOGLE_SERVICE_ACCOUNT_KEY = os.getenv("GOOGLE_SERVICE_ACCOUNT_KEY")
+
+# Only validate service account key if using service account auth
+if GOOGLE_AUTH_TYPE == 'service_account' and not GOOGLE_SERVICE_ACCOUNT_KEY:
+    raise ValueError("GOOGLE_SERVICE_ACCOUNT_KEY environment variable is required for service account authentication")
 
 # Slack Configuration
 SLACK_WEBHOOK_URL = os.getenv("SLACK_WEBHOOK_URL")

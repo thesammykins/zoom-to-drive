@@ -9,11 +9,15 @@ from datetime import datetime
 from pathlib import Path
 
 import pytz
-from google.oauth2.service_account import Credentials
+from google.oauth2.service_account import Credentials as ServiceAccountCredentials
+from google.oauth2.credentials import Credentials as OAuthCredentials
+from google_auth_oauthlib.flow import InstalledAppFlow
+from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from tqdm import tqdm
 
+from zoom_manager.config import settings
 from zoom_manager.config.settings import (
     GOOGLE_SERVICE_ACCOUNT_KEY,
     GOOGLE_TARGET_FOLDER_ID,
@@ -42,20 +46,58 @@ class GoogleDriveClient:
         self._authenticate()
 
     def _authenticate(self):
-        """
-        Set up Google Drive API authentication using service account credentials.
-        Creates service object for API interactions.
-        
-        Raises:
-            Exception: If authentication or service creation fails
-        """
+        """Set up Google Drive API authentication using either OAuth or Service Account."""
         try:
-            service_account_info = json.loads(GOOGLE_SERVICE_ACCOUNT_KEY)
-            creds = Credentials.from_service_account_info(service_account_info, scopes=self.SCOPES)
+            if settings.GOOGLE_AUTH_TYPE == 'oauth':
+                self._authenticate_oauth()
+            else:
+                self._authenticate_service_account()
+        except Exception as e:
+            self.logger.error(f"Authentication failed: {str(e)}")
+            raise
+
+    def _authenticate_oauth(self):
+        """Authenticate using OAuth 2.0 credentials"""
+        try:
+            creds = None
+            token_path = settings.CREDENTIALS_DIR / 'token.json'
+
+            # Load existing token if available
+            if token_path.exists():
+                creds = OAuthCredentials.from_authorized_user_file(str(token_path), self.SCOPES)
+
+            # If no valid credentials, run OAuth flow
+            if not creds or not creds.valid:
+                if creds and creds.expired and creds.refresh_token:
+                    creds.refresh(Request())
+                else:
+                    client_config = json.loads(settings.GOOGLE_SERVICE_ACCOUNT_KEY)
+                    flow = InstalledAppFlow.from_client_config(client_config, self.SCOPES)
+                    creds = flow.run_local_server(port=0)
+
+                # Save token
+                with open(token_path, 'w') as token:
+                    token.write(creds.to_json())
+
+            self.service = build('drive', 'v3', credentials=creds)
+            self.credentials = creds
+
+        except Exception as e:
+            self.logger.error(f"OAuth authentication failed: {str(e)}")
+            raise
+
+    def _authenticate_service_account(self):
+        """Authenticate using Service Account credentials"""
+        try:
+            service_account_info = json.loads(settings.GOOGLE_SERVICE_ACCOUNT_KEY)
+            creds = ServiceAccountCredentials.from_service_account_info(
+                service_account_info, 
+                scopes=self.SCOPES
+            )
             self.service = build('drive', 'v3', credentials=creds)
             self.credentials = creds
         except Exception as e:
-            self.logger.error(f"Authentication failed: {str(e)}")
+            self.logger.error(f"Service account authentication failed: {str(e)}")
             raise
 
     def get_or_create_folder(self, folder_name, parent_id=None):
