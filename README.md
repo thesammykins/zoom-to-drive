@@ -10,6 +10,7 @@ This application streamlines the process of managing Zoom recordings by automati
 
 - 📥 Downloads Zoom recordings based on meeting name and user email
 - 🎯 Supports video, audio, transcript, and chat file downloads
+- ⏱️ Automatically filters out recordings shorter than 5 minutes
 - 📁 Organizes files by date in Google Drive
 - 💬 Sends notifications to Slack when videos are uploaded
 - 📊 Includes progress bars for download and upload operations

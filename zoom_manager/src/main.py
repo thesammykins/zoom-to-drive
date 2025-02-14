@@ -134,7 +134,7 @@ def main():
     1. Set up logging and parse arguments
     2. Initialize API clients (Zoom, Google Drive, Slack)
     3. Look up Zoom user and fetch recordings
-    4. Download matching recordings
+    4. Download matching recordings (if longer than 5 minutes)
     5. Upload to Google Drive
     6. Send Slack notifications
     7. Clean up downloaded files
@@ -188,6 +188,12 @@ def main():
         # Process each recording
         for recording in target_recordings:
             logger.info(f"Processing recording: {recording['topic']}")
+            
+            # Check recording duration (in minutes)
+            duration = recording.get('duration', 0)
+            if duration < 5:
+                logger.info(f"Skipping recording '{recording['topic']}' - duration ({duration} minutes) is less than 5 minutes")
+                continue
             
             try:
                 # Download files
