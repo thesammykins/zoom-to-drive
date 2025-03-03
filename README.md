@@ -15,16 +15,27 @@ This application streamlines the process of managing Zoom recordings by automati
 - 💬 Sends notifications to Slack when videos are uploaded
 - 📊 Includes progress bars for download and upload operations
 - 🧹 Automatically cleans up local downloads after successful upload
+- 🔒 Secure credential storage with encryption
+- 🖥️ Native macOS application with modern UI
+- 🚀 Optimized for high-speed transfers
 
 ## 🔧 Prerequisites
 
-- Python 3.8 or higher
-- pip (if not already installed, follow the instructions [here](https://pip.pypa.io/en/stable/installation/))
+- macOS 10.13 or higher
 - Zoom OAuth 2.0 credentials ([official documentation](https://marketplace.zoom.us/docs/guides/auth/oauth/))
 - Google Drive API credentials ([official documentation](https://developers.google.com/drive/api/v3/quickstart/python))
 - Slack webhook URL (optional)
 
 ## 🚀 Installation
+
+### For End Users
+
+1. Download the latest release from the [releases page](https://github.com/thesammykins/zoom-to-drive/releases)
+2. Drag "Zoom to Drive.app" to your Applications folder
+3. Create a `.env` file with your credentials (see Configuration section)
+4. Launch the application from your Applications folder
+
+### For Developers
 
 1. Clone the repository:
 ```bash
@@ -35,7 +46,7 @@ cd zoom-to-drive
 2. Create a virtual environment and activate it:
 ```bash
 python3 -m venv venv
-source venv/bin/activate  # On Windows use `venv\Scripts\activate`
+source venv/bin/activate
 ```
 
 3. Install required packages:
@@ -43,26 +54,16 @@ source venv/bin/activate  # On Windows use `venv\Scripts\activate`
 pip install -r requirements.txt
 ```
 
-4. Set up credentials:
-    - Copy `.env_example` to `.env`
-    - Fill in your credentials:
-      - Zoom OAuth 2.0 credentials (from Zoom Marketplace)
-      - Google Drive API credentials
-      - Slack webhook URL (optional)
-    - Store your Google Cloud service account key as a GitHub Secret
-
-## 📁 Project Structure
-
-## ⚙️ Configuration
-
-1. Create required directories:
+4. Build the application:
 ```bash
-mkdir -p logs downloads credentials
+pyinstaller zoom_manager.spec
 ```
 
-2. Configure `.env` file:
-   - Never commit this file (it should be in .gitignore)
-   - Fill in your actual credentials:
+The built application will be available in the `dist` folder.
+
+## 🔧 Configuration
+
+Create a `.env` file with your credentials:
 ```bash
 ZOOM_CLIENT_ID=your_actual_client_id
 ZOOM_CLIENT_SECRET=your_actual_client_secret
@@ -74,61 +75,34 @@ SLACK_WEBHOOK_URL=your_webhook_url  # Optional
 DEBUG=false
 ```
 
+When you first launch the application, you'll be prompted to select this `.env` file. The application will encrypt it for secure storage.
+
 ## 🎮 Usage
 
-Run the script from the root directory:
-```bash
-python zoom_manager.src.main.py --name "Meeting Name" --email "user@example.com" --days 7
-```
+1. Launch "Zoom to Drive" from your Applications folder
+2. Select your encrypted `.env` file
+3. Enter the meeting name and user email
+4. (Optional) Adjust the number of days to search
+5. Enable debug mode if needed
+6. Click "Start Transfer"
 
-Arguments:
-- `--name`: Target recording name to search for (required)
-- `--email`: Email of the Zoom user (required)
-- `--days`: Number of days to search (default: 7)
-- `--drive-id`: Google Drive folder ID (optional, overrides environment variable)
-- `--shared-id`: Google Shared Drive ID (optional, overrides environment variable)
-
-## 📝 Logging
-
-Log levels are controlled by the DEBUG environment variable:
-- With `DEBUG=true`:
-  - Detailed API responses
-  - Download progress
-  - File operations
-  - No downloads are made
-- With `DEBUG=false`:
-  - Important operations
-  - Errors and warnings
-  - Final status
-  - Downloads are made
-
-Logs are stored in:
-- `./logs/zoom_manager.log` (main log file)
-- `./logs/error.log` (error-only logs)
-
-## ⚠️ Error Handling
-
-The application includes comprehensive error handling for:
-- API authentication
-- Download failures
-- Upload issues
-- File system operations
+The application will show progress bars for both download and upload operations.
 
 ## 🔧 Common Errors and Troubleshooting
 
 ### Error: "Authentication failed"
-- Ensure that your Zoom OAuth 2.0 and Google Drive API credentials are correct.
-- Verify that the `GOOGLE_SERVICE_ACCOUNT_KEY` is set correctly in the `.env` file.
+- Ensure that your Zoom OAuth 2.0 and Google Drive API credentials are correct
+- Verify that your `.env` file is properly formatted
 
 ### Error: "Failed to get access token"
-- Check your Zoom OAuth 2.0 credentials in the `.env` file.
-- Ensure that your Zoom account has the necessary permissions.
+- Check your Zoom OAuth 2.0 credentials
+- Ensure that your Zoom account has the necessary permissions
 
 ### Error: "Failed to upload file"
-- Verify that your Google Drive API credentials are correct.
-- Check the internet connection and retry the operation.
+- Verify that your Google Drive API credentials are correct
+- Check your internet connection
 
-For more detailed logs, enable debug mode by setting `DEBUG=true` in the `.env` file.
+For more detailed logs, enable debug mode in the application settings.
 
 ## 💡 Support
 
