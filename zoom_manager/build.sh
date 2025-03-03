@@ -4,21 +4,21 @@
 set -e
 
 # Create virtual environment if it doesn't exist
-if [ ! -d "venv" ]; then
+if [ ! -d "../venv" ]; then
     echo "Creating virtual environment..."
-    python3 -m venv venv
+    python3 -m venv ../venv
 fi
 
 # Activate virtual environment
-source venv/bin/activate
+source ../venv/bin/activate
 
 # Install requirements
 echo "Installing requirements..."
-pip install -r requirements.txt
+pip install -r ../requirements.txt
 
 # Create application icon
 echo "Creating application icon..."
-python zoom_manager/src/create_icon.py
+python src/create_icon.py
 
 # Build the application
 echo "Building application..."

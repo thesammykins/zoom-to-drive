@@ -32,4 +32,4 @@ jobs:
     - name: Run tests
       run: |
         source venv/bin/activate
-        pytest --cov=zoom_manager/src tests/ 
+        pytest --cov=zoom_manager/src zoom_manager/tests/ 

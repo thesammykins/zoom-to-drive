@@ -9,6 +9,25 @@ This document outlines the steps for building and releasing new versions of the 
 - Git
 - GitHub account with repository access
 
+## Project Structure
+
+```
+zoom-to-drive/
+├── .github/                    # GitHub Actions workflows
+├── requirements.txt            # Python dependencies
+├── README.md                   # User documentation
+├── RELEASE.md                  # Developer documentation
+└── zoom_manager/              # Main package directory
+    ├── build.sh               # Build script
+    ├── zoom_manager.spec      # PyInstaller spec file
+    ├── config/                # Configuration files
+    ├── credentials/           # OAuth credentials
+    ├── downloads/             # Temporary download directory
+    ├── logs/                  # Application logs
+    ├── src/                   # Source code
+    └── tests/                 # Test files
+```
+
 ## Build Process
 
 ### Local Development Build
@@ -32,12 +51,13 @@ pip install -r requirements.txt
 
 4. Run the build script:
 ```bash
+cd zoom_manager
 ./build.sh
 ```
 
 The built application will be available in:
-- `dist/Zoom to Drive.app` - The application bundle
-- `dist/Zoom to Drive.app.zip` - The release package
+- `zoom_manager/dist/Zoom to Drive.app` - The application bundle
+- `zoom_manager/dist/Zoom to Drive.app.zip` - The release package
 
 ### GitHub Actions Build
 
@@ -63,12 +83,12 @@ git push origin v2.0.0
 
 ### Version Bumping
 
-1. Update version in `zoom_manager.spec`:
+1. Update version in `zoom_manager/zoom_manager.spec`:
 ```python
 app = BUNDLE(
     exe,
     name='Zoom to Drive.app',
-    icon='zoom_manager/config/icon.icns',
+    icon='config/icon.icns',
     bundle_identifier='com.zoomdrive.app',
     info_plist={
         'CFBundleShortVersionString': '2.0.0',  # Update this
@@ -91,13 +111,14 @@ Before creating a release:
 
 1. Run tests locally:
 ```bash
+cd zoom_manager
 pytest tests/
 ```
 
 2. Run linting:
 ```bash
-flake8 zoom_manager/src
-black --check zoom_manager/src
+flake8 src
+black --check src
 ```
 
 3. Test the built application:
@@ -110,7 +131,7 @@ black --check zoom_manager/src
 
 ## Release Checklist
 
-- [ ] Update version in `zoom_manager.spec`
+- [ ] Update version in `zoom_manager/zoom_manager.spec`
 - [ ] Run tests and linting
 - [ ] Test the built application
 - [ ] Create and push version tag
@@ -128,12 +149,14 @@ black --check zoom_manager/src
 1. Icon Creation Fails
 ```bash
 # Manually create icon
-python zoom_manager/src/create_icon.py
+cd zoom_manager
+python src/create_icon.py
 ```
 
 2. PyInstaller Build Fails
 ```bash
 # Clean build directory
+cd zoom_manager
 rm -rf build dist
 # Rebuild
 pyinstaller zoom_manager.spec
@@ -184,7 +207,8 @@ pip freeze > requirements.txt
 2. Icon Updates
 ```bash
 # Regenerate icon
-python zoom_manager/src/create_icon.py
+cd zoom_manager
+python src/create_icon.py
 ```
 
 3. Documentation Updates
