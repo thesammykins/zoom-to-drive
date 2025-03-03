@@ -3,12 +3,12 @@
 block_cipher = None
 
 a = Analysis(
-    ['zoom_manager/src/gui.py'],
+    ['src/gui.py'],
     pathex=[],
     binaries=[],
     datas=[
-        ('zoom_manager/src/*.py', 'zoom_manager/src'),
-        ('zoom_manager/config/*', 'zoom_manager/config'),
+        ('src/*.py', 'src'),
+        ('config/*', 'config'),
     ],
     hiddenimports=[
         'PyQt6',
@@ -54,13 +54,13 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon='zoom_manager/config/icon.icns'
+    icon='config/icon.icns'
 )
 
 app = BUNDLE(
     exe,
     name='Zoom to Drive.app',
-    icon='zoom_manager/config/icon.icns',
+    icon='config/icon.icns',
     bundle_identifier='com.zoomdrive.app',
     info_plist={
         'CFBundleShortVersionString': '2.0.0',
