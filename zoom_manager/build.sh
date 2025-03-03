@@ -12,6 +12,11 @@ fi
 # Activate virtual environment
 source ../venv/bin/activate
 
+# Install build dependencies
+echo "Installing build dependencies..."
+pip install --upgrade pip
+pip install wheel setuptools
+
 # Install requirements
 echo "Installing requirements..."
 pip install -r ../requirements.txt
