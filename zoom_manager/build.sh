@@ -15,7 +15,7 @@ source ../venv/bin/activate
 # Install build dependencies
 echo "Installing build dependencies..."
 pip install --upgrade pip
-pip install wheel setuptools
+pip install --upgrade wheel setuptools packaging
 
 # Install requirements
 echo "Installing requirements..."
