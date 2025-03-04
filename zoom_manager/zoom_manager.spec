@@ -2,12 +2,21 @@
 
 block_cipher = None
 
+import os
+import sys
+from pathlib import Path
+
+# Add src directory to Python path
+src_dir = str(Path('src').absolute())
+if src_dir not in sys.path:
+    sys.path.insert(0, src_dir)
+
 a = Analysis(
     ['src/gui.py'],
-    pathex=[],
+    pathex=[src_dir],
     binaries=[],
     datas=[
-        ('src/*.py', 'src'),
+        ('src/*.py', '.'),
         ('config/*', 'config'),
     ],
     hiddenimports=[
@@ -21,6 +30,7 @@ a = Analysis(
         'google_auth_oauthlib.flow',
         'googleapiclient.discovery',
         'googleapiclient.http',
+        'transfer_manager',
     ],
     hookspath=[],
     hooksconfig={},
