@@ -34,7 +34,7 @@ cd zoom-to-drive
 2. Create a virtual environment and activate it:
 ```bash
 python3 -m venv venv
-source venv/bin/activate  # On Windows use `venv\Scripts\activate`
+source venv/bin/activate && pip install -e .
 ```
 
 3. Install required packages:
