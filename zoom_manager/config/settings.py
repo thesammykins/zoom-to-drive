@@ -31,7 +31,14 @@ ZOOM_API_BASE_URL = "https://api.zoom.us/v2"
 # Remove DAYS_TO_SEARCH from environment variables
 # DAYS_TO_SEARCH = int(os.getenv("DAYS_TO_SEARCH", "7"))
 
-# Google Drive Configuration
+# Rclone Configuration (replaces Google Drive API)
+RCLONE_REMOTE_NAME = os.getenv("RCLONE_REMOTE_NAME", "recordingdrive")
+RCLONE_BASE_PATH   = os.getenv(
+    "RCLONE_BASE_PATH",
+    "Recordings (Demo, Ferocia Day, etc)/Ferocia Demos"
+)
+
+# Legacy Google Drive Configuration (deprecated, kept for compatibility)
 GOOGLE_AUTH_TYPE = os.getenv("GOOGLE_AUTH_TYPE", "oauth")  # 'oauth' or 'service_account'
 GOOGLE_CREDENTIALS_FILE = CREDENTIALS_DIR / "credentials.json"
 GOOGLE_SHARED_DRIVE_ID = os.getenv("GOOGLE_SHARED_DRIVE_ID") or None  # Allow CLI override

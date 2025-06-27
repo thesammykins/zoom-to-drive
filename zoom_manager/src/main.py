@@ -9,10 +9,6 @@ import logging
 from datetime import datetime, timedelta
 from pathlib import Path
 
-# Global configuration IDs for Google Drive
-GOOGLE_TARGET_FOLDER_ID = None 
-GOOGLE_SHARED_DRIVE_ID = None
-
 # Update imports to absolute paths
 from zoom_manager.config.settings import (
     LOG_FILE,
@@ -21,11 +17,9 @@ from zoom_manager.config.settings import (
     FILE_FORMATTER,
     CONSOLE_FORMATTER,
     DOWNLOAD_DIR,
-    GOOGLE_TARGET_FOLDER_ID as ENV_TARGET_FOLDER_ID,
-    GOOGLE_SHARED_DRIVE_ID as ENV_SHARED_DRIVE_ID
 )
 from zoom_manager.src.zoom_client import ZoomClient
-from zoom_manager.src.google_drive_client import GoogleDriveClient
+from zoom_manager.src.rclone_client import RcloneClient
 from zoom_manager.src.slack_client import SlackClient
 
 def setup_logging():
@@ -88,19 +82,7 @@ def parse_args():
     Returns:
         argparse.Namespace: Parsed command line arguments
     """
-    global GOOGLE_TARGET_FOLDER_ID, GOOGLE_SHARED_DRIVE_ID
-    
-    # Initialize with environment values
-    GOOGLE_TARGET_FOLDER_ID = ENV_TARGET_FOLDER_ID
-    GOOGLE_SHARED_DRIVE_ID = ENV_SHARED_DRIVE_ID
-    
     parser = argparse.ArgumentParser(description='Zoom Recording Manager')
-    parser.add_argument('--drive-id', 
-                       help='Google Drive folder ID',
-                       default=GOOGLE_TARGET_FOLDER_ID)
-    parser.add_argument('--shared-id',
-                       help='Google Shared Drive ID', 
-                       default=GOOGLE_SHARED_DRIVE_ID)
     parser.add_argument(
         '--name',
         required=True,
@@ -119,13 +101,6 @@ def parse_args():
     )
     
     args = parser.parse_args()
-    
-    # Override with CLI args if provided
-    if args.drive_id:
-        GOOGLE_TARGET_FOLDER_ID = args.drive_id
-    if args.shared_id:
-        GOOGLE_SHARED_DRIVE_ID = args.shared_id
-        
     return args
 
 def main():
@@ -153,7 +128,7 @@ def main():
     try:
         # Initialize clients
         zoom = ZoomClient()
-        gdrive = GoogleDriveClient()
+        rclone = RcloneClient()
         slack = SlackClient()
 
         # Look up user by email
@@ -189,10 +164,17 @@ def main():
         for recording in target_recordings:
             logger.info(f"Processing recording: {recording['topic']}")
             
-            # Check recording duration (in minutes)
-            duration = recording.get('duration', 0)
+            # Check recording duration using API start_time and recording end timestamps
+            meta_duration = recording.get('duration', 0)
+            actual_duration = zoom.get_actual_duration(recording)
+            duration = max(meta_duration, actual_duration)
+            logger.debug(
+                f"Recording '{recording['topic']}' durations – metadata: {meta_duration}min, actual: {actual_duration:.1f}min"
+            )
             if duration < 5:
-                logger.info(f"Skipping recording '{recording['topic']}' - duration ({duration} minutes) is less than 5 minutes")
+                logger.info(
+                    f"Skipping recording '{recording['topic']}' – duration ({duration:.1f} minutes) is below threshold"
+                )
                 continue
             
             try:
@@ -203,22 +185,30 @@ def main():
                     logger.warning(f"No files were downloaded for recording: {recording['topic']}")
                     continue
 
-                # Upload files to Google Drive
+                # Batch upload entire directory via rclone
+                local_dir = downloaded_files[0]['path'].parent
+                date_folder = downloaded_files[0]['date_folder']
+                remote_dir = rclone.upload_directory(local_dir, date_folder)
+                logger.info(f"Successfully uploaded all files to {remote_dir}")
+
+                # Send Slack notifications for .mp4 recordings
                 for file_dict in downloaded_files:
-                    try:
-                        file_id = gdrive.upload_file(file_dict)
-                        logger.info(f"Successfully uploaded {file_dict['name']} (ID: {file_id})")
-                        
-                        # Send Slack notification only for .mp4 files
-                        if file_dict['name'].endswith('.mp4'):
-                            slack.send_notification(
-                                recording_name=recording['topic'],
-                                file_name=file_dict['name'],
-                                file_id=file_id
+                    if file_dict['name'].endswith('.mp4'):
+                        try:
+                            drive_file_id = rclone.get_file_id(
+                                file_dict['date_folder'], file_dict['name']
                             )
-                    except Exception as upload_error:
-                        logger.error(f"Failed to upload {file_dict['name']}: {str(upload_error)}")
-                        continue
+                        except Exception as e:
+                            logger.error(
+                                f"Failed to retrieve Drive file ID for {file_dict['name']}: {e}"
+                            )
+                            drive_file_id = None
+
+                        slack.send_notification(
+                            recording_name=recording['topic'],
+                            file_name=file_dict['name'],
+                            file_id=drive_file_id or f"{remote_dir}/{file_dict['name']}"
+                        )
 
                 # Clean up downloaded files after successful upload
                 if downloaded_files:

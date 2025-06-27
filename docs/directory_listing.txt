@@ -1,0 +1,102 @@
+ZOOM_TO_DRIVE REPOSITORY STRUCTURE (3 LEVELS DEEP)
+==================================================
+
+ROOT LEVEL:
+- .cursor/                    # IDE configuration
+- .DS_Store                   # macOS system file
+- .env                        # Environment variables
+- .git/                       # Git repository data
+- .gitignore                  # Git ignore patterns
+- docs/                       # Documentation directory (currently empty)
+- LICENSE                     # License file
+- README.md                   # Main project documentation
+- run_zoom_manager.sh         # Shell script to run the application
+- setup.py                    # Python package setup file
+- venv/                       # Python virtual environment
+- zoom_drive.egg-info/        # Python package metadata
+- zoom_manager/               # Main application package
+- zoom_manager.egg-info/      # Additional package metadata
+
+MAIN PACKAGE (zoom_manager/):
+- __init__.py                 # Package initialization
+- __pycache__/               # Python bytecode cache
+- .DS_Store                   # macOS system file
+- .env                        # Local environment variables
+- build/                      # Build artifacts
+- config/                     # Configuration files
+  - __init__.py
+  - __pycache__/
+  - settings.py
+- credentials/                # Authentication credentials
+  - credentials.json
+  - token.json
+- dist/                       # Distribution files
+  - scripts/
+  - Zoom to Drive.app/
+  - Zoom to Drive.app.zip
+  - Zoom to Drive.app.zip.sha256
+- dist_files/                 # Additional distribution files
+  - run.sh
+- downloads/                  # Downloaded files storage
+  - 2025-06-06/              # Date-organized downloads
+- env_example                 # Example environment file
+- icon.icns                   # Application icon
+- launcher.py                 # Application launcher script
+- logs/                       # Application logs
+  - zoom_manager_*.log        # Date-stamped log files
+- requirements.txt            # Python dependencies
+- scripts/                    # Utility scripts
+  - clean.sh
+  - sync_dependencies.py
+  - test_build.py
+  - update_version.py
+- setup.py                    # Package setup configuration
+- src/                        # Source code directory
+  - __init__.py
+  - __pycache__/
+  - auth_manager.py           # Authentication management
+  - google_drive_client.py    # Google Drive API client
+  - logger.py                 # Logging utilities
+  - main.py                   # Main application entry point
+  - slack_client.py           # Slack integration
+  - transfer_worker.py        # File transfer operations
+  - zoom_client.py            # Zoom API client
+- tests/                      # Test files
+  - test_gui.py
+- zoom_manager.egg-info/      # Package metadata
+
+KEY OBSERVATIONS:
+================
+1. This is a Python application for managing Zoom recordings and transferring them to Google Drive
+2. The project has a dual structure - both root-level and nested package configurations
+3. Main source code is in zoom_manager/src/
+4. No AGENT.md or similar documentation files found
+5. Has comprehensive logging, configuration, and credential management
+6. Includes build/distribution pipeline with macOS app packaging
+7. Integration with multiple services: Zoom, Google Drive, Slack
+8. Development environment includes testing, linting, and formatting tools (in venv/bin/)
+9. Uses dated downloads directory structure for organization
+10. Has both shell script and Python launcher entry points
+
+TOP-LEVEL PACKAGES/MODULES:
+- zoom_manager (main package)
+- Individual Python modules: auth_manager, google_drive_client, logger, main, slack_client, transfer_worker, zoom_client
+
+CONFIGURATION FILES:
+- .env (environment variables)
+- zoom_manager/.env (local environment)  
+- zoom_manager/env_example (environment template)
+- zoom_manager/config/settings.py (application settings)
+- setup.py (package configuration)
+- requirements.txt (dependencies)
+- .gitignore (version control)
+
+SCRIPTS:
+- run_zoom_manager.sh (main runner)
+- zoom_manager/launcher.py (Python launcher)
+- zoom_manager/scripts/ (utilities)
+
+DOCUMENTATION:
+- README.md (main documentation)
+- LICENSE (license information)
+- docs/ (empty documentation directory)

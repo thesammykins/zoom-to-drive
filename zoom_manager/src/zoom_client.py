@@ -31,7 +31,7 @@ class ZoomClient:
         'audio_only': '.m4a',
         'video_only(m4s)': '.m4s',
         'closed_caption': '.vtt',
-        'chat_file': 'txt'
+        'chat_file': '.txt'
         # Add other mappings as needed
     }
 
@@ -83,17 +83,22 @@ class ZoomClient:
 
     def _convert_to_melbourne_time(self, utc_time_str):
         """
-        Convert UTC timestamp to Melbourne timezone.
-        Args:
-            utc_time_str (str): UTC timestamp in format "YYYY-MM-DDTHH:MM:SSZ"
-        Returns:
-            datetime: Converted timestamp in Melbourne timezone
+        Convert an ISO8601 UTC timestamp to Melbourne timezone.
+
+        Handles strings ending with 'Z' or with timezone offsets, with or without fractional seconds.
         """
-        utc_time = datetime.strptime(utc_time_str, "%Y-%m-%dT%H:%M:%SZ")
-        utc_time = utc_time.replace(tzinfo=pytz.UTC)
-        melbourne_tz = pytz.timezone('Australia/Melbourne')
-        melbourne_time = utc_time.astimezone(melbourne_tz)
-        return melbourne_time
+        # Normalize 'Z' suffix to '+00:00' for fromisoformat
+        iso_ts = utc_time_str
+        if utc_time_str.endswith('Z'):
+            iso_ts = utc_time_str[:-1] + '+00:00'
+        # Parse ISO8601 timestamp
+        dt = datetime.fromisoformat(iso_ts)
+        # Ensure UTC tzinfo if none
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=pytz.UTC)
+        # Convert to Melbourne timezone
+        mel_tz = pytz.timezone('Australia/Melbourne')
+        return dt.astimezone(mel_tz)
 
     def get_user_by_email(self, email: str):
         """
@@ -293,7 +298,35 @@ class ZoomClient:
             for file in downloaded_files:
                 self.logger.debug(f"- {file['name']} at {file['path']}")
 
+
         return downloaded_files
+
+    def get_actual_duration(self, recording_info: dict) -> float:
+        """
+        Calculate actual meeting duration in minutes from start_time and recording end timestamps.
+        Fallback to metadata 'duration' if no recording end info available.
+        """
+        # Parse meeting start time
+        try:
+            start = self._convert_to_melbourne_time(recording_info.get('start_time', ''))
+        except Exception:
+            return recording_info.get('duration', 0)
+
+        # Gather all recording end timestamps
+        ends = []
+        for f in recording_info.get('recording_files', []):
+            end_ts = f.get('recording_end')
+            if end_ts:
+                try:
+                    ends.append(self._convert_to_melbourne_time(end_ts))
+                except Exception:
+                    continue
+        if not ends:
+            return recording_info.get('duration', 0)
+
+        # Compute duration between meeting start and last recording end
+        duration_minutes = (max(ends) - start).total_seconds() / 60
+        return round(duration_minutes, 1)
 
     def _get_file_extension(self, file_type):
         """

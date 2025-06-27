@@ -47,7 +47,7 @@ class SlackClient:
                         "elements": [
                             {
                                 "type": "mrkdwn",
-                                "text": "_Brought to you with the power of Copilot_"
+                                "text": "_Brought to you with the power of Copilot, Warp and Cursor_"
                             }
                         ]
                     }
