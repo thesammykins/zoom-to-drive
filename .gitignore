@@ -2,11 +2,34 @@
 credentials/
 downloads/
 logs/
+docs/
+.cursor/
 *.env
+.env.*
 env_example
 token.pickle
 client_secrets.json
 credentials.json
+token.json
+*.key
+*.pem
+*.p12
+*.pfx
+secrets/
+
+# Execution scripts that may contain sensitive info
+/run_zoom_manager.sh
+
+# API Keys and tokens (additional patterns)
+*secret*
+*token*
+*key*
+*credentials*
+!env_example
+!**/requirements.txt
+!**/*example*
+!**/*template*
+!**/*sample*
 
 # Python
 __pycache__/

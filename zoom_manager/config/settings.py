@@ -32,10 +32,9 @@ ZOOM_API_BASE_URL = "https://api.zoom.us/v2"
 # DAYS_TO_SEARCH = int(os.getenv("DAYS_TO_SEARCH", "7"))
 
 # Rclone Configuration (replaces Google Drive API)
-RCLONE_REMOTE_NAME = os.getenv("RCLONE_REMOTE_NAME", "recordingdrive")
+RCLONE_REMOTE_NAME = os.getenv("RCLONE_REMOTE_NAME")
 RCLONE_BASE_PATH   = os.getenv(
-    "RCLONE_BASE_PATH",
-    "Recordings (Demo, Ferocia Day, etc)/Ferocia Demos"
+    "RCLONE_BASE_PATH"
 )
 
 # Legacy Google Drive Configuration (deprecated, kept for compatibility)

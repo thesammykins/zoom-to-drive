@@ -125,7 +125,7 @@ class RcloneClient:
             self.logger.debug(f"Uploading file_dict: {file_dict}")
             
             # Build the remote path following the structure:
-            # recordingdrive:"Recordings (Demo, Ferocia Day, etc)/Ferocia Demos/YYYY-MM-DD/"
+            # recordingdrive:"FOLDER/SUBFOLDER/YYYY-MM-DD/"
             date_folder = file_dict['date_folder']
             
             # Construct the full remote directory path

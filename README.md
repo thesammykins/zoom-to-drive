@@ -26,6 +26,18 @@ This application streamlines the process of managing Zoom recordings by automati
 
 ## 🚀 Installation
 
+### Option 1: Automated Setup (Recommended)
+
+Use the provided setup script for automatic environment configuration:
+
+```bash
+git clone https://github.com/thesammykins/zoom-to-drive.git
+cd zoom-to-drive
+./run_zoom_manager.sh --setup-only
+```
+
+### Option 2: Manual Setup
+
 1. Clone the repository:
 ```bash
 git clone https://github.com/thesammykins/zoom-to-drive.git
@@ -38,18 +50,23 @@ python3 -m venv venv
 source venv/bin/activate  # On Windows use `venv\Scripts\activate`
 ```
 
-3. Install required packages:
+3. Install the package:
 ```bash
-pip install -r requirements.txt
+pip install -e .
 ```
 
-4. Set up credentials:
-    - Copy `.env_example` to `.env`
-    - Fill in your credentials:
-      - Zoom OAuth 2.0 credentials (from Zoom Marketplace)
-      - Google Drive API credentials
-      - Slack webhook URL (optional)
-    - Store your Google Cloud service account key as a GitHub Secret
+4. Install and configure rclone:
+```bash
+# Install rclone (macOS)
+brew install rclone
+
+# Configure rclone for Google Drive
+rclone config
+```
+
+5. Set up credentials:
+    - Copy `zoom_manager/env_example` to `.env`
+    - Configure your credentials (see Configuration section below)
 
 ## 📁 Project Structure
 
@@ -69,7 +86,6 @@ ZOOM_CLIENT_SECRET=your_actual_client_secret
 ZOOM_ACCOUNT_ID=your_actual_account_id
 GOOGLE_SHARED_DRIVE_ID=your_drive_id
 GOOGLE_DRIVE_FOLDER_ID=your_folder_id
-GOOGLE_SERVICE_ACCOUNT_KEY=your_service_account_key
 SLACK_WEBHOOK_URL=your_webhook_url  # Optional
 DEBUG=false
 ```

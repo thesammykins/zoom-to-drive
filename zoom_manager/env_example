@@ -1,8 +1,4 @@
 # This is an example of your .env file to use, rename file to .env to use
-
-# Authentication Type (choose one)
-GOOGLE_AUTH_TYPE=oauth  # or 'service_account'
-
 # Zoom OAuth 2.0 Credentials
 ZOOM_CLIENT_ID=your_zoom_client_id
 ZOOM_CLIENT_SECRET=your_zoom_client_secret
@@ -11,12 +7,6 @@ ZOOM_ACCOUNT_ID=your_zoom_account_id
 # Google Drive Configuration
 GOOGLE_SHARED_DRIVE_ID=your_shared_drive_id
 GOOGLE_DRIVE_FOLDER_ID=your_folder_id
-
-# For OAuth 2.0 authentication
-GOOGLE_CREDENTIALS_FILE=credentials.json
-
-# For Service Account authentication (required if GOOGLE_AUTH_TYPE=service_account)
-GOOGLE_SERVICE_ACCOUNT_KEY={"type": "service_account", "project_id": "...", "private_key": "...", "client_email": "..."}
 
 # Optional Slack Integration
 SLACK_WEBHOOK_URL=your_slack_webhook_url
