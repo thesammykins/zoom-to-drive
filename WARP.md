@@ -21,7 +21,45 @@ Environment setup
   - cp zoom_manager/env_example .env
   - $EDITOR .env
 
-Run the CLI
+Use the wrapper script (recommended)
+- Location: repository root (run_zoom_manager.sh)
+- Purpose: Convenience wrapper that prepares the environment and forwards parameters to the Python CLI
+- What it does:
+  - Ensures Python 3 and a local virtualenv exist; activates .venv and installs dependencies from zoom_manager/requirements.txt
+  - Loads .env (never commit secrets)
+  - Invokes python3 zoom_manager/src/main.py with the same flags you provide to the script
+  - Forwards rclone overrides via CLI (see Recent fixes): --rclone-remote, --rclone-base-path
+  - Respects DEBUG=1 for verbose logging; logs still go to zoom_manager/logs/
+- Prerequisites:
+  - Python 3 and pip available
+  - rclone installed and remote configured
+  - .env populated from zoom_manager/env_example
+- Make executable (once):
+  - chmod +x ./run_zoom_manager.sh
+- Help:
+  - ./run_zoom_manager.sh --help
+- Typical run:
+  - ./run_zoom_manager.sh --name "Weekly Sync" --email user@example.com --days 14
+- Disable Slack notifications:
+  - ./run_zoom_manager.sh --name "Weekly Sync" --email user@example.com --days 14 --no-slack
+- Override rclone settings (preferred over relying on env timing):
+  - ./run_zoom_manager.sh --name "Weekly Sync" --email user@example.com --days 7 --rclone-remote recordingdrive --rclone-base-path "Custom/Path"
+- Debug mode (more verbose logging and mock download behavior):
+  - DEBUG=1 ./run_zoom_manager.sh --name "Weekly Sync" --email user@example.com --days 3
+- Configuration precedence (highest to lowest):
+  - CLI flags passed to run_zoom_manager.sh (forwarded to Python CLI)
+  - Explicit environment variables exported in your shell (e.g., DEBUG=1)
+  - Values from .env loaded by the app
+- Troubleshooting:
+  - "permission denied": chmod +x ./run_zoom_manager.sh
+  - "python3: command not found": Ensure Python 3 is installed and on PATH (macOS: brew install python)
+  - "rclone not found" or remote missing: rclone version; rclone listremotes; rclone config
+  - Missing .env or placeholders: cp zoom_manager/env_example .env and fill in values (never commit secrets)
+  - Spaces in arguments: quote values (e.g., --name "Weekly Sync")
+  - Still stuck? Run with DEBUG=1 for more logging and check zoom_manager/logs/zoom_manager_*.log
+
+Run the CLI directly (alternative)
+- You can call the Python CLI directly, but the wrapper script above is the recommended entrypoint for convenience and consistency
 - Show help:
   - python3 zoom_manager/src/main.py --help
 - Typical run (required flags shown):
@@ -29,7 +67,8 @@ Run the CLI
       --name "Weekly Sync" \
       --email user@example.com \
       --days 14 \
-      [--no-slack] [--slack-webhook https://hooks.slack.com/services/…]
+      [--no-slack] [--slack-webhook https://hooks.slack.com/services/…] \
+      [--rclone-remote recordingdrive] [--rclone-base-path "Custom/Path"]
 - Debug mode (more verbose logging and mock download behavior in Zoom client):
   - DEBUG=1 python3 zoom_manager/src/main.py --name "Weekly Sync" --email user@example.com
 
@@ -40,6 +79,7 @@ rclone prerequisites and checks
 - This app reads these env vars (see rclone_client.py and settings.py):
   - RCLONE_REMOTE_NAME (e.g., drive)
   - RCLONE_BASE_PATH  (e.g., Zoom/Recordings)
+- If using the wrapper script, prefer passing --rclone-remote and --rclone-base-path to the script; these are forwarded as CLI args to the app, bypassing env timing issues
 - Sanity checks before running uploads:
   - echo "$RCLONE_REMOTE_NAME" && echo "$RCLONE_BASE_PATH"
   - rclone lsd "$RCLONE_REMOTE_NAME:"
@@ -65,6 +105,7 @@ High-level architecture
 
 - rclone client (zoom_manager/src/rclone_client.py)
   - Ensures rclone binary exists and the remote RCLONE_REMOTE_NAME is configured (listremotes)
+  - Accepts remote_name and base_path parameters in constructor to override .env settings
   - upload_directory(local_path, date_folder): creates remote dir and copies whole directory to "RCLONE_REMOTE_NAME:RCLONE_BASE_PATH/date_folder"
   - get_file_id(date_folder, file_name): uses rclone lsjson to extract the Drive file ID (best-effort across ID key variants)
   - check_file_exists, test_connection helpers available
@@ -90,6 +131,9 @@ Environment variables (placeholders; see zoom_manager/env_example)
 
 Build, lint, tests
 - No explicit build, lint, or test configuration found in this repo. If you add pytest or linters later, update this section with exact commands (e.g., pytest -q, running a single test, etc.).
+
+Recent fixes
+- **rclone parameter override fix**: Previously, --rclone-base-path and --rclone-remote parameters in run_zoom_manager.sh were not being respected due to environment variable timing issues. Fixed by adding these as command-line arguments to the Python script and passing them directly to the RcloneClient constructor, bypassing environment variable dependencies.
 
 Notes on repo docs
 - No CLAUDE.md, AGENT.md/AGENTS.md, Cursor rules, or Copilot instructions found here.
