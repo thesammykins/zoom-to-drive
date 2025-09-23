@@ -99,6 +99,26 @@ def parse_args():
         default=7,
         help="Number of days to search for recordings (default: 7)"
     )
+    parser.add_argument(
+        '--no-slack',
+        action='store_true',
+        help="Disable Slack notifications"
+    )
+    parser.add_argument(
+        '--slack-webhook',
+        type=str,
+        help="Custom Slack webhook URL to send notifications to"
+    )
+    parser.add_argument(
+        '--rclone-remote',
+        type=str,
+        help="Override rclone remote name (defaults to RCLONE_REMOTE_NAME from .env)"
+    )
+    parser.add_argument(
+        '--rclone-base-path',
+        type=str,
+        help="Override rclone base path (defaults to RCLONE_BASE_PATH from .env)"
+    )
     
     args = parser.parse_args()
     return args
@@ -122,14 +142,22 @@ def main():
     target_recording_name = args.name
     target_user_email = args.email
     days_to_search = args.days
+    no_slack = args.no_slack
+    slack_webhook = args.slack_webhook
 
     logger.info(f"Starting Zoom recording manager (searching last {days_to_search} days)")
+    if slack_webhook:
+        logger.info(f"Using custom Slack webhook: {slack_webhook[:50]}...")
+    if args.rclone_remote:
+        logger.info(f"Using custom rclone remote: {args.rclone_remote}")
+    if args.rclone_base_path:
+        logger.info(f"Using custom rclone base path: {args.rclone_base_path}")
 
     try:
         # Initialize clients
         zoom = ZoomClient()
-        rclone = RcloneClient()
-        slack = SlackClient()
+        rclone = RcloneClient(remote_name=args.rclone_remote, base_path=args.rclone_base_path)
+        slack = SlackClient(webhook_url=slack_webhook)
 
         # Look up user by email
         try:
@@ -191,24 +219,27 @@ def main():
                 remote_dir = rclone.upload_directory(local_dir, date_folder)
                 logger.info(f"Successfully uploaded all files to {remote_dir}")
 
-                # Send Slack notifications for .mp4 recordings
-                for file_dict in downloaded_files:
-                    if file_dict['name'].endswith('.mp4'):
-                        try:
-                            drive_file_id = rclone.get_file_id(
-                                file_dict['date_folder'], file_dict['name']
-                            )
-                        except Exception as e:
-                            logger.error(
-                                f"Failed to retrieve Drive file ID for {file_dict['name']}: {e}"
-                            )
-                            drive_file_id = None
+                # Send Slack notifications for .mp4 recordings (unless disabled)
+                if not no_slack:
+                    for file_dict in downloaded_files:
+                        if file_dict['name'].endswith('.mp4'):
+                            try:
+                                drive_file_id = rclone.get_file_id(
+                                    file_dict['date_folder'], file_dict['name']
+                                )
+                            except Exception as e:
+                                logger.error(
+                                    f"Failed to retrieve Drive file ID for {file_dict['name']}: {e}"
+                                )
+                                drive_file_id = None
 
-                        slack.send_notification(
-                            recording_name=recording['topic'],
-                            file_name=file_dict['name'],
-                            file_id=drive_file_id or f"{remote_dir}/{file_dict['name']}"
-                        )
+                            slack.send_notification(
+                                recording_name=recording['topic'],
+                                file_name=file_dict['name'],
+                                file_id=drive_file_id or f"{remote_dir}/{file_dict['name']}"
+                            )
+                else:
+                    logger.info("Slack notifications disabled via --no-slack flag")
 
                 # Clean up downloaded files after successful upload
                 if downloaded_files:

@@ -20,6 +20,13 @@ secrets/
 # Execution scripts that may contain sensitive info
 /run_zoom_manager.sh
 
+# App bundles and packager artifacts (avoid bundling secrets into releases)
+*.app
+*.spec
+
+# IDE/project metadata
+.ropeproject/
+
 # API Keys and tokens (additional patterns)
 *secret*
 *token*
