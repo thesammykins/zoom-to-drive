@@ -263,6 +263,10 @@ class ZoomClient:
         folder_path.mkdir(parents=True, exist_ok=True)
         downloaded_files = []
         recording_files = recording_info.get('recording_files', [])
+        
+        # Debug: Log the recording files structure
+        if DEBUG:
+            self.logger.debug(f"Recording files structure: {json.dumps(recording_files, indent=2)}")
 
         # Group recordings by type
         recordings_by_type = {}
@@ -272,10 +276,23 @@ class ZoomClient:
                 recordings_by_type[file_type] = []
             recordings_by_type[file_type].append(file_info)
 
+        # Check for recordings still being processed
+        processing_files = [f for f in recording_files if f.get('status') == 'processing']
+        if processing_files:
+            self.logger.warning(f"Found {len(processing_files)} files still being processed by Zoom. These will be skipped.")
+            self.logger.info("Tip: Wait a few minutes for processing to complete, then try again.")
+        
         for file_type in recordings_by_type:
             extension = self._get_file_extension(file_type)
             if not extension:
-                self.logger.warning(f"Unknown file type: {file_type}")
+                if file_type == '':  # Empty file type usually means processing
+                    processing_count = len([f for f in recordings_by_type[file_type] if f.get('status') == 'processing'])
+                    if processing_count > 0:
+                        self.logger.warning(f"Skipping {processing_count} files that are still being processed")
+                    else:
+                        self.logger.warning(f"Unknown file type: {file_type}")
+                else:
+                    self.logger.warning(f"Unknown file type: {file_type}")
                 continue
 
             for index, file_info in enumerate(recordings_by_type[file_type]):
