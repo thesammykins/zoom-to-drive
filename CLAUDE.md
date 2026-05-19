@@ -214,7 +214,7 @@ When `DEBUG=1`:
 
 ## Prerequisites
 
-1. **Python 3.7+** installed and in PATH
+1. **Python 3.9+** installed and in PATH
 2. **rclone** installed and configured:
    - Install: `brew install rclone` (macOS) or `curl https://rclone.org/install.sh | sudo bash`
    - Configure: `rclone config` (create Google Drive remote)
