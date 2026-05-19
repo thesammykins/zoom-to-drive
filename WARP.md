@@ -115,9 +115,9 @@ High-level architecture
   - If no webhook configured, logs and skips
 
 - Settings (zoom_manager/config/settings.py)
-  - Loads .env (python-dotenv) and sets paths: logs/, downloads/, credentials/
+  - Loads .env (python-dotenv) and sets paths: logs/, downloads/
   - Env: ZOOM_CLIENT_ID, ZOOM_CLIENT_SECRET, ZOOM_ACCOUNT_ID, SLACK_WEBHOOK_URL, RCLONE_REMOTE_NAME, RCLONE_BASE_PATH, DEBUG
-  - Google Drive API settings remain for legacy compatibility but uploads now use rclone
+  - Uploads use rclone; direct Google Drive API settings are no longer used
   - Logging: daily file in logs/, console and file formatters; LOG_LEVEL depends on DEBUG
 
 Environment variables (placeholders; see zoom_manager/env_example)
@@ -138,4 +138,3 @@ Recent fixes
 Notes on repo docs
 - No CLAUDE.md, AGENT.md/AGENTS.md, Cursor rules, or Copilot instructions found here.
 - If a README.md is added or updated, incorporate its important, repo-specific operational details here.
-

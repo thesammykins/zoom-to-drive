@@ -69,8 +69,20 @@ class SlackClient:
             response.raise_for_status()
             self.logger.info(f"Slack notification sent for {file_name}")
 
+        except requests.HTTPError as e:
+            response = e.response
+            if response is not None:
+                self.logger.error(
+                    "Failed to send Slack notification: HTTP %s - %s",
+                    response.status_code,
+                    response.text,
+                )
+            else:
+                self.logger.error("Failed to send Slack notification: HTTPError")
+        except requests.RequestException as e:
+            self.logger.error("Failed to send Slack notification: %s", e.__class__.__name__)
         except Exception as e:
-            self.logger.error(f"Failed to send Slack notification: {str(e)}")
+            self.logger.error("Failed to send Slack notification: %s", e.__class__.__name__)
 
     def _format_drive_reference(self, file_id: str) -> str:
         """Format a Google Drive file ID or fallback path for Slack."""

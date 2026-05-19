@@ -17,7 +17,7 @@ A Python automation tool that fetches Zoom cloud recordings, downloads them loca
 
 ### Prerequisites
 
-- Python 3.9+
+- Python 3.10+
 - [rclone](https://rclone.org/) installed and configured with Google Drive
 - Zoom OAuth 2.0 application credentials
 - Optional: Slack webhook for notifications
@@ -278,7 +278,7 @@ DEBUG=1 python3 zoom_manager/src/main.py --name "Test" --email test@example.com 
 - ✅ External HTTP calls use explicit timeouts
 - ✅ Slack webhook URLs are not written to logs
 - ✅ Local file cleanup after successful uploads
-- ⚠️ **Never commit** `.env`, `credentials/`, or `run_zoom_manager.sh`
+- ⚠️ **Never commit** `.env`, local rclone config files, or `run_zoom_manager.sh`
 
 ## Contributing
 
