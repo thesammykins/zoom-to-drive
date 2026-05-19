@@ -13,7 +13,6 @@ from pathlib import Path
 from zoom_manager.config.settings import (
     LOG_FILE,
     LOG_LEVEL,
-    DEBUG,
     FILE_FORMATTER,
     CONSOLE_FORMATTER,
     DOWNLOAD_DIR,

@@ -4,8 +4,6 @@ Unit tests for ZoomClient.
 import pytest
 from datetime import datetime, timedelta
 from unittest.mock import Mock, patch, MagicMock
-from pathlib import Path
-import pytz
 
 from zoom_manager.src.zoom_client import ZoomClient
 
@@ -186,8 +184,7 @@ class TestZoomClient:
         assert duration == 30
 
     @patch('zoom_manager.src.zoom_client.requests.get')
-    @patch('zoom_manager.src.zoom_client.Path')
-    def test_process_recording_debug_mode(self, mock_path, mock_get, mock_zoom_recording):
+    def test_process_recording_debug_mode(self, mock_get, mock_zoom_recording):
         """Test process_recording in debug mode (no actual download)."""
         import zoom_manager.config.settings as settings
         original_debug = settings.DEBUG
@@ -197,11 +194,6 @@ class TestZoomClient:
             client = ZoomClient()
             client.access_token = 'test_token'
             client.token_expires_at = datetime.now() + timedelta(hours=1)
-
-            # Mock directory creation
-            mock_dir = MagicMock()
-            mock_path.return_value = mock_dir
-            mock_dir.exists.return_value = True
 
             downloaded_files = client.process_recording(mock_zoom_recording, 'Weekly Sync')
 

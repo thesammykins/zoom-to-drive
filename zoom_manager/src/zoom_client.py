@@ -2,7 +2,6 @@ import logging
 import json
 import re
 from datetime import datetime, timedelta
-from pathlib import Path
 from urllib.parse import quote
 
 import pytz

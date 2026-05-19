@@ -7,9 +7,6 @@ import logging
 import subprocess
 import shutil
 import json
-from pathlib import Path
-from datetime import datetime
-import pytz
 
 from zoom_manager.config import settings
 from zoom_manager.config.settings import RCLONE_REMOTE_NAME, RCLONE_BASE_PATH

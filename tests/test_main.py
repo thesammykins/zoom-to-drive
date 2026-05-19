@@ -2,7 +2,7 @@
 Integration tests for main.py.
 """
 import pytest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 from pathlib import Path
 import sys
 from io import StringIO
