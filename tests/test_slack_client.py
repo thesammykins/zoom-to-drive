@@ -40,6 +40,7 @@ class TestSlackClient:
 
         # Verify the request was made
         mock_post.assert_called_once()
+        assert mock_post.call_args.kwargs['timeout'] == (10, 30)
 
         # Verify the payload
         call_args = mock_post.call_args
@@ -94,7 +95,7 @@ class TestSlackClient:
 
     def test_send_notification_no_webhook(self):
         """Test notification sending when no webhook configured."""
-        client = SlackClient(webhook_url=None)
+        client = SlackClient(webhook_url="")
 
         # Should not raise exception, just skip
         client.send_notification(
@@ -156,3 +157,11 @@ class TestSlackClient:
         assert context_block['type'] == 'context'
         assert 'elements' in context_block
         assert context_block['elements'][0]['type'] == 'mrkdwn'
+
+    def test_notification_formats_fallback_drive_path(self):
+        """Test fallback rclone paths are not formatted as Google Drive file IDs."""
+        client = SlackClient(webhook_url="")
+
+        reference = client._format_drive_reference('Test/Path/2024-01-15/test.mp4')
+
+        assert reference == 'Drive location: `Test/Path/2024-01-15/test.mp4`'

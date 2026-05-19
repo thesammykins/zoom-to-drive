@@ -5,14 +5,11 @@ setup(
     name="zoom-manager",
     version="0.1",
     packages=find_packages(),
+    python_requires=">=3.9",
     install_requires=[
-        'python-dotenv',
-        'requests',
-        'google-auth',
-        'google-auth-oauthlib',
-        'google-auth-httplib2',
-        'google-api-python-client',
-        'tqdm',
-        'pytz'
+        'python-dotenv>=1.2.2,<2',
+        'requests>=2.34.2,<3',
+        'pytz>=2026.2',
+        'tqdm>=4.67.3,<5'
     ],
 )

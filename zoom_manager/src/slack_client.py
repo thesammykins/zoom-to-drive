@@ -1,6 +1,11 @@
 import logging
+from urllib.parse import quote
+
 import requests
 from zoom_manager.config.settings import SLACK_WEBHOOK_URL
+
+
+REQUEST_TIMEOUT = (10, 30)
 
 class SlackClient:
     """
@@ -16,7 +21,7 @@ class SlackClient:
                                        will use SLACK_WEBHOOK_URL from settings.
         """
         self.logger = logging.getLogger(__name__)
-        self.webhook_url = webhook_url or SLACK_WEBHOOK_URL
+        self.webhook_url = SLACK_WEBHOOK_URL if webhook_url is None else webhook_url
 
     def send_notification(self, recording_name: str, file_name: str, file_id: str):
         """
@@ -45,7 +50,7 @@ class SlackClient:
                         "type": "section",
                         "text": {
                             "type": "mrkdwn",
-                            "text": f"*New recording uploaded*\n• Recording: {recording_name}\n• File: {file_name}\n• <https://drive.google.com/file/d/{file_id}/view|View in Google Drive>"
+                            "text": f"*New recording uploaded*\n• Recording: {recording_name}\n• File: {file_name}\n• {self._format_drive_reference(file_id)}"
                         }
                     },
                     {
@@ -60,9 +65,17 @@ class SlackClient:
                 ]
             }
 
-            response = requests.post(self.webhook_url, json=message)
+            response = requests.post(self.webhook_url, json=message, timeout=REQUEST_TIMEOUT)
             response.raise_for_status()
-            self.logger.info(f"Slack notification sent for {file_name} to {self.webhook_url[:50]}...")
+            self.logger.info(f"Slack notification sent for {file_name}")
 
         except Exception as e:
             self.logger.error(f"Failed to send Slack notification: {str(e)}")
+
+    def _format_drive_reference(self, file_id: str) -> str:
+        """Format a Google Drive file ID or fallback path for Slack."""
+        if not file_id:
+            return "Google Drive file uploaded"
+        if "/" in file_id or ":" in file_id:
+            return f"Drive location: `{file_id}`"
+        return f"<https://drive.google.com/file/d/{quote(file_id, safe='')}/view|View in Google Drive>"
