@@ -13,7 +13,6 @@ from pathlib import Path
 from zoom_manager.config.settings import (
     LOG_FILE,
     LOG_LEVEL,
-    DEBUG,
     FILE_FORMATTER,
     CONSOLE_FORMATTER,
     DOWNLOAD_DIR,
@@ -147,7 +146,7 @@ def main():
 
     logger.info(f"Starting Zoom recording manager (searching last {days_to_search} days)")
     if slack_webhook:
-        logger.info(f"Using custom Slack webhook: {slack_webhook[:50]}...")
+        logger.info("Using custom Slack webhook: configured")
     if args.rclone_remote:
         logger.info(f"Using custom rclone remote: {args.rclone_remote}")
     if args.rclone_base_path:

@@ -4,8 +4,6 @@ Unit tests for ZoomClient.
 import pytest
 from datetime import datetime, timedelta
 from unittest.mock import Mock, patch, MagicMock
-from pathlib import Path
-import pytz
 
 from zoom_manager.src.zoom_client import ZoomClient
 
@@ -35,6 +33,7 @@ class TestZoomClient:
         assert client.access_token == 'test_access_token_123'
         assert client.token_expires_at is not None
         mock_post.assert_called_once()
+        assert mock_post.call_args.kwargs['timeout'] == (10, 60)
 
     @patch('zoom_manager.src.zoom_client.requests.post')
     def test_get_access_token_cached(self, mock_post, mock_oauth_token_response):
@@ -101,6 +100,7 @@ class TestZoomClient:
 
         assert user_info == mock_zoom_user
         assert user_info['email'] == 'test@example.com'
+        assert mock_get.call_args.kwargs['timeout'] == (10, 60)
 
     @patch('zoom_manager.src.zoom_client.requests.get')
     def test_get_user_by_email_not_found(self, mock_get):
@@ -134,6 +134,36 @@ class TestZoomClient:
         assert 'meetings' in recordings
         assert len(recordings['meetings']) == 1
         assert recordings['meetings'][0]['topic'] == 'Weekly Sync Meeting'
+        assert mock_get.call_args.kwargs['params']['page_size'] == 300
+        assert mock_get.call_args.kwargs['timeout'] == (10, 60)
+
+    @patch('zoom_manager.src.zoom_client.requests.get')
+    def test_get_recordings_paginates(self, mock_get, mock_zoom_recording):
+        """Test recordings retrieval follows Zoom next_page_token pagination."""
+        first_response = Mock()
+        first_response.json.return_value = {
+            'meetings': [mock_zoom_recording],
+            'next_page_token': 'token_2',
+            'total_records': 2,
+        }
+        second_recording = {**mock_zoom_recording, 'uuid': 'recording456'}
+        second_response = Mock()
+        second_response.json.return_value = {
+            'meetings': [second_recording],
+            'next_page_token': '',
+            'total_records': 2,
+        }
+        mock_get.side_effect = [first_response, second_response]
+
+        client = ZoomClient()
+        client.access_token = 'test_token'
+        client.token_expires_at = datetime.now() + timedelta(hours=1)
+
+        recordings = client.get_recordings('user123')
+
+        assert len(recordings['meetings']) == 2
+        assert mock_get.call_count == 2
+        assert mock_get.call_args_list[1].kwargs['params']['next_page_token'] == 'token_2'
 
     def test_get_actual_duration(self, mock_zoom_recording):
         """Test actual duration calculation from timestamps."""
@@ -154,8 +184,7 @@ class TestZoomClient:
         assert duration == 30
 
     @patch('zoom_manager.src.zoom_client.requests.get')
-    @patch('zoom_manager.src.zoom_client.Path')
-    def test_process_recording_debug_mode(self, mock_path, mock_get, mock_zoom_recording):
+    def test_process_recording_debug_mode(self, mock_get, mock_zoom_recording):
         """Test process_recording in debug mode (no actual download)."""
         import zoom_manager.config.settings as settings
         original_debug = settings.DEBUG
@@ -165,11 +194,6 @@ class TestZoomClient:
             client = ZoomClient()
             client.access_token = 'test_token'
             client.token_expires_at = datetime.now() + timedelta(hours=1)
-
-            # Mock directory creation
-            mock_dir = MagicMock()
-            mock_path.return_value = mock_dir
-            mock_dir.exists.return_value = True
 
             downloaded_files = client.process_recording(mock_zoom_recording, 'Weekly Sync')
 
@@ -189,7 +213,17 @@ class TestZoomClient:
         assert client.FILE_TYPE_EXTENSION_MAP['chat_file'] == '.txt'
         assert client.FILE_TYPE_EXTENSION_MAP['closed_caption'] == '.vtt'
 
-    @patch('zoom_manager.src.zoom_client.DEBUG', False)
+    def test_sanitize_filename_part(self):
+        """Test unsafe path characters are removed from file name components."""
+        client = ZoomClient()
+
+        sanitized = client._sanitize_filename_part('../Team/Sync:*?', 'recording')
+
+        assert sanitized == 'Team_Sync'
+        assert '/' not in sanitized
+        assert '..' not in sanitized
+
+    @patch('zoom_manager.config.settings.DEBUG', False)
     @patch('zoom_manager.src.zoom_client.requests.get')
     @patch('zoom_manager.src.zoom_client.tqdm')
     def test_download_recording_file(self, mock_tqdm, mock_get, temp_download_dir):
@@ -218,3 +252,4 @@ class TestZoomClient:
 
         assert result is True
         mock_get.assert_called_once()
+        assert mock_get.call_args.kwargs['timeout'] == (10, 300)

@@ -1,7 +1,7 @@
 import logging
 import json
+import re
 from datetime import datetime, timedelta
-from pathlib import Path
 from urllib.parse import quote
 
 import pytz
@@ -14,16 +14,19 @@ from zoom_manager.config.settings import (
     ZOOM_CLIENT_SECRET,
     ZOOM_ACCOUNT_ID,
     DOWNLOAD_DIR,
-    DEBUG  # Add this line
 )
+from zoom_manager.config import settings
+
+
+REQUEST_TIMEOUT = (10, 60)
+DOWNLOAD_TIMEOUT = (10, 300)
+INVALID_FILENAME_CHARS = re.compile(r'[<>:"/\\|?*\x00-\x1f]')
 
 class ZoomClient:
     """
     A client for interacting with the Zoom API to manage recordings.
     Handles authentication, user lookup, and recording downloads.
     """
-
-    MIN_VIDEO_SIZE_MB = 20  # Minimum size threshold for valid video files
 
     FILE_TYPE_EXTENSION_MAP = {
         'shared_screen_with_speaker_view(cc)': '.mp4',
@@ -57,7 +60,7 @@ class ZoomClient:
         }
 
         try:
-            response = requests.post(url, auth=auth, data=data)
+            response = requests.post(url, auth=auth, data=data, timeout=REQUEST_TIMEOUT)
             response.raise_for_status()
             token_info = response.json()
             
@@ -113,12 +116,13 @@ class ZoomClient:
         """
         try:
             self.logger.info(f"Looking up user with email: {email}")
-            encoded_email = quote(email)
+            encoded_email = quote(email, safe="")
             url = f"{ZOOM_API_BASE_URL}/users/{encoded_email}"
             
             response = requests.get(
                 url, 
-                headers=self._get_headers()
+                headers=self._get_headers(),
+                timeout=REQUEST_TIMEOUT,
             )
             
             if response.status_code == 404:
@@ -153,7 +157,7 @@ class ZoomClient:
             dict: JSON response containing recording information
         """
         url = f"{ZOOM_API_BASE_URL}/users/{user_id}/recordings"
-        params = {}
+        params = {"page_size": 300}
         
         if start_date:
             params["from"] = start_date.strftime("%Y-%m-%d")
@@ -164,15 +168,34 @@ class ZoomClient:
             self.logger.info(f"Fetching recordings for user ID: {user_id}")
             self.logger.debug(f"Date range: {start_date} to {end_date}")
             
-            response = requests.get(
-                url,
-                headers=self._get_headers(),
-                params=params
-            )
-            response.raise_for_status()
-            recordings = response.json()
-            
-            total_recordings = len(recordings.get('meetings', []))
+            all_meetings = []
+            recordings = {}
+            next_page_token = None
+
+            while True:
+                if next_page_token:
+                    params["next_page_token"] = next_page_token
+                else:
+                    params.pop("next_page_token", None)
+
+                response = requests.get(
+                    url,
+                    headers=self._get_headers(),
+                    params=params,
+                    timeout=REQUEST_TIMEOUT,
+                )
+                response.raise_for_status()
+                recordings = response.json()
+                all_meetings.extend(recordings.get('meetings', []))
+
+                next_page_token = recordings.get("next_page_token")
+                if not next_page_token:
+                    break
+
+            recordings["meetings"] = all_meetings
+            recordings["total_records"] = max(recordings.get("total_records", 0), len(all_meetings))
+
+            total_recordings = len(all_meetings)
             self.logger.info(f"Found {total_recordings} recordings")
             return recordings
             
@@ -200,7 +223,7 @@ class ZoomClient:
             RuntimeError: If download is incomplete
             RequestException: If download request fails
         """
-        if DEBUG:
+        if settings.DEBUG:
             self.logger.info(f"[DEBUG] Would download from {download_url} to {output_path}")
             return False  # Indicate that download was skipped
 
@@ -208,7 +231,8 @@ class ZoomClient:
             response = requests.get(
                 download_url,
                 headers=self._get_headers(),
-                stream=True
+                stream=True,
+                timeout=DOWNLOAD_TIMEOUT,
             )
             response.raise_for_status()
             
@@ -218,6 +242,8 @@ class ZoomClient:
             with tqdm(total=total_size, unit='iB', unit_scale=True, desc=f"Downloading {output_path.name}") as progress_bar:
                 with open(output_path, 'wb') as file:
                     for data in response.iter_content(block_size):
+                        if not data:
+                            continue
                         progress_bar.update(len(data))
                         file.write(data)
 
@@ -256,7 +282,8 @@ class ZoomClient:
             list: Information about downloaded files including paths and metadata
         """
         melbourne_time = self._convert_to_melbourne_time(recording_info['start_time'])
-        base_folder_name = melbourne_time.strftime("%d %B %Y - ") + meeting_name
+        safe_meeting_name = self._sanitize_filename_part(meeting_name, "recording")
+        base_folder_name = melbourne_time.strftime("%d %B %Y - ") + safe_meeting_name
         date_folder = melbourne_time.strftime("%Y-%m-%d")  # Ensure correct date format
 
         folder_path = DOWNLOAD_DIR / date_folder
@@ -265,7 +292,7 @@ class ZoomClient:
         recording_files = recording_info.get('recording_files', [])
         
         # Debug: Log the recording files structure
-        if DEBUG:
+        if settings.DEBUG:
             self.logger.debug(f"Recording files structure: {json.dumps(recording_files, indent=2)}")
 
         # Group recordings by type
@@ -297,6 +324,10 @@ class ZoomClient:
 
             for index, file_info in enumerate(recordings_by_type[file_type]):
                 download_url = file_info.get('download_url')
+                if not download_url:
+                    self.logger.warning(f"Skipping {file_type or 'unknown'} file without a download URL")
+                    continue
+
                 part_suffix = f"_{index + 1}" if len(recordings_by_type[file_type]) > 1 else ""
                 file_name = f"{base_folder_name}{part_suffix}{extension}"
                 output_path = folder_path / file_name
@@ -310,7 +341,7 @@ class ZoomClient:
                         'file_size': output_path.stat().st_size
                     })
 
-        if DEBUG and downloaded_files:
+        if settings.DEBUG and downloaded_files:
             self.logger.debug("Available items to download:")
             for file in downloaded_files:
                 self.logger.debug(f"- {file['name']} at {file['path']}")
@@ -354,3 +385,11 @@ class ZoomClient:
             str: File extension including dot prefix, or None if type unknown
         """
         return self.FILE_TYPE_EXTENSION_MAP.get(file_type)
+
+    def _sanitize_filename_part(self, value, fallback):
+        """
+        Return a safe single path component for downloaded recording file names.
+        """
+        sanitized = INVALID_FILENAME_CHARS.sub("_", value or "")
+        sanitized = re.sub(r"\s+", " ", sanitized).strip(" ._")
+        return sanitized[:180] or fallback

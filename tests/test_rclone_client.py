@@ -3,8 +3,7 @@ Unit tests for RcloneClient.
 """
 import pytest
 import json
-from unittest.mock import Mock, patch, MagicMock
-from pathlib import Path
+from unittest.mock import Mock, patch
 import subprocess
 
 from zoom_manager.src.rclone_client import RcloneClient

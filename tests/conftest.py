@@ -4,8 +4,7 @@ Pytest configuration and shared fixtures for Zoom to Drive tests.
 import os
 import pytest
 from datetime import datetime
-from pathlib import Path
-from unittest.mock import Mock, MagicMock
+from unittest.mock import Mock
 
 # Set test environment variables before importing settings
 os.environ['ZOOM_CLIENT_ID'] = 'test_client_id'

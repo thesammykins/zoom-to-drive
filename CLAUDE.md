@@ -147,7 +147,7 @@ rclone lsd <remote-name>:
 
 **Settings** (`zoom_manager/config/settings.py`)
 - Loads `.env` via python-dotenv
-- Key paths: `logs/`, `downloads/`, `credentials/`
+- Key paths: `logs/`, `downloads/`
 - Environment variables:
   - Zoom: `ZOOM_CLIENT_ID`, `ZOOM_CLIENT_SECRET`, `ZOOM_ACCOUNT_ID`
   - Rclone: `RCLONE_REMOTE_NAME`, `RCLONE_BASE_PATH`
@@ -214,7 +214,7 @@ When `DEBUG=1`:
 
 ## Prerequisites
 
-1. **Python 3.7+** installed and in PATH
+1. **Python 3.10+** installed and in PATH
 2. **rclone** installed and configured:
    - Install: `brew install rclone` (macOS) or `curl https://rclone.org/install.sh | sudo bash`
    - Configure: `rclone config` (create Google Drive remote)
@@ -227,7 +227,7 @@ When `DEBUG=1`:
 ## Security Notes
 
 - All credentials in environment variables (never commit `.env`)
-- `.gitignore` excludes: `.env`, `credentials/`, `run_zoom_manager.sh`, `downloads/`, `logs/`
+- `.gitignore` excludes: `.env`, `run_zoom_manager.sh`, `downloads/`, `logs/`
 - OAuth tokens cached with automatic refresh (5-minute buffer before expiry)
 - Local files deleted after successful upload
 

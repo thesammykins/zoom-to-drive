@@ -2,6 +2,7 @@
 Unit tests for SlackClient.
 """
 import pytest
+import requests
 from unittest.mock import Mock, patch
 
 from zoom_manager.src.slack_client import SlackClient
@@ -40,6 +41,7 @@ class TestSlackClient:
 
         # Verify the request was made
         mock_post.assert_called_once()
+        assert mock_post.call_args.kwargs['timeout'] == (10, 30)
 
         # Verify the payload
         call_args = mock_post.call_args
@@ -77,11 +79,14 @@ class TestSlackClient:
         assert f'https://drive.google.com/file/d/{file_id}/view' in text_content
 
     @patch('zoom_manager.src.slack_client.requests.post')
-    def test_send_notification_request_failure(self, mock_post):
+    def test_send_notification_request_failure_redacts_url(self, mock_post, caplog):
         """Test notification sending with request failure."""
-        mock_post.side_effect = Exception("Network error")
+        webhook_url = 'https://hooks.slack.com/services/secret/path'
+        mock_post.side_effect = requests.ConnectionError(
+            f"Failed to connect to {webhook_url}"
+        )
 
-        client = SlackClient()
+        client = SlackClient(webhook_url=webhook_url)
 
         # Should not raise exception, just log error
         client.send_notification(
@@ -91,10 +96,12 @@ class TestSlackClient:
         )
 
         mock_post.assert_called_once()
+        assert webhook_url not in caplog.text
+        assert 'ConnectionError' in caplog.text
 
     def test_send_notification_no_webhook(self):
         """Test notification sending when no webhook configured."""
-        client = SlackClient(webhook_url=None)
+        client = SlackClient(webhook_url="")
 
         # Should not raise exception, just skip
         client.send_notification(
@@ -104,10 +111,15 @@ class TestSlackClient:
         )
 
     @patch('zoom_manager.src.slack_client.requests.post')
-    def test_send_notification_http_error(self, mock_post):
+    def test_send_notification_http_error(self, mock_post, caplog):
         """Test notification sending with HTTP error response."""
         mock_response = Mock()
-        mock_response.raise_for_status.side_effect = Exception("HTTP 400 Bad Request")
+        mock_response.status_code = 400
+        mock_response.text = 'invalid_payload'
+        mock_response.raise_for_status.side_effect = requests.HTTPError(
+            "400 Client Error for url: https://hooks.slack.com/services/secret",
+            response=mock_response,
+        )
         mock_post.return_value = mock_response
 
         client = SlackClient()
@@ -120,6 +132,8 @@ class TestSlackClient:
         )
 
         mock_post.assert_called_once()
+        assert 'HTTP 400 - invalid_payload' in caplog.text
+        assert 'hooks.slack.com' not in caplog.text
 
     @patch('zoom_manager.src.slack_client.requests.post')
     def test_notification_message_structure(self, mock_post, mock_slack_response):
@@ -156,3 +170,11 @@ class TestSlackClient:
         assert context_block['type'] == 'context'
         assert 'elements' in context_block
         assert context_block['elements'][0]['type'] == 'mrkdwn'
+
+    def test_notification_formats_fallback_drive_path(self):
+        """Test fallback rclone paths are not formatted as Google Drive file IDs."""
+        client = SlackClient(webhook_url="")
+
+        reference = client._format_drive_reference('Test/Path/2024-01-15/test.mp4')
+
+        assert reference == 'Drive location: `Test/Path/2024-01-15/test.mp4`'

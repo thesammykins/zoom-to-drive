@@ -5,7 +5,6 @@ This script tests the RcloneClient functionality to ensure proper setup.
 """
 
 import sys
-import os
 from pathlib import Path
 
 # Add the zoom_manager package to the path
@@ -73,7 +72,7 @@ def main():
         print("\nTo fix this:")
         print("1. Install rclone: brew install rclone (macOS) or curl https://rclone.org/install.sh | sudo bash (Linux)")
         print("2. Configure rclone: rclone config")
-        print("3. Create a remote named 'recordingdrive' for Google Drive")
+        print(f"3. Create a Google Drive remote named '{RCLONE_REMOTE_NAME}' or set RCLONE_REMOTE_NAME")
         print("4. Set up access to your Google Shared Drive")
         sys.exit(1)
     
@@ -82,8 +81,8 @@ def main():
         print("\n❌ Test failed: Cannot connect to remote")
         print("\nTo fix this:")
         print("1. Check your internet connection")
-        print("2. Verify rclone configuration: rclone config show recordingdrive")
-        print("3. Test manually: rclone lsd recordingdrive:")
+        print(f"2. Verify rclone configuration: rclone config show {client.remote_name}")
+        print(f"3. Test manually: rclone lsd {client.remote_name}:")
         sys.exit(1)
     
     # Test remote info
